@@ -1,0 +1,135 @@
+{
+  "identity": {
+    "name": "The Arena",
+    "tone": "Elite Performance",
+    "description": "A high-contrast, dark-mode-first design system built for speed, precision, and the intensity of competitive sports. It eschews decorative gradients for functional clarity and 'broadcast-ready' aesthetics.",
+    "theme_preference": "dark",
+    "emotional_archetype": "The Performance Pro"
+  },
+  "typography": {
+    "primary_font": "Inter",
+    "heading_font": "Barlow Condensed",
+    "mono_font": "JetBrains Mono",
+    "scoreboard_font": "Teko",
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;800&family=Inter:wght@400;500;600&family=Teko:wght@300;500;700&display=swap",
+    "scale": {
+      "h1": "text-5xl md:text-7xl font-black tracking-tighter uppercase",
+      "h2": "text-3xl md:text-5xl font-bold tracking-tight uppercase",
+      "h3": "text-2xl font-semibold tracking-tight",
+      "body": "text-base font-normal tracking-normal leading-relaxed",
+      "scoreboard_number": "text-[8rem] md:text-[12rem] font-bold leading-none tracking-tighter font-teko",
+      "label": "text-xs font-bold tracking-widest uppercase text-muted-foreground"
+    }
+  },
+  "colors": {
+    "background": "#09090b",
+    "foreground": "#fafafa",
+    "card": "#18181b",
+    "card_foreground": "#fafafa",
+    "popover": "#18181b",
+    "popover_foreground": "#fafafa",
+    "primary": "#ef4444",
+    "primary_foreground": "#fafafa",
+    "secondary": "#bef264",
+    "secondary_foreground": "#09090b",
+    "muted": "#27272a",
+    "muted_foreground": "#a1a1aa",
+    "accent": "#27272a",
+    "accent_foreground": "#fafafa",
+    "destructive": "#7f1d1d",
+    "destructive_foreground": "#fafafa",
+    "border": "#27272a",
+    "input": "#27272a",
+    "ring": "#ef4444",
+    "sport_specific": {
+      "table_tennis": "#ef4444",
+      "badminton": "#bef264",
+      "neutral": "#3b82f6"
+    }
+  },
+  "layout_strategies": {
+    "dashboard": "Bento Grid (High Density). Use `grid-cols-1 md:grid-cols-4 gap-4`. Widgets should be dense, data-heavy, and use 100% of the available height.",
+    "tournament_list": "Card Grid. Use `grid-cols-1 md:grid-cols-3 gap-6`. Cards should have a 'tracing beam' hover effect.",
+    "tournament_detail": "Canvas Layout. The bracket view should be a horizontal scrollable canvas with sticky headers for rounds.",
+    "live_game": "Broadcast Overlay. Fullscreen, minimal chrome. Huge numbers. Dark background with slight transparency for video overlay simulation.",
+    "spacing": "Generous on marketing/landing pages (`p-12`, `p-24`), but Compact on dashboard (`p-4`, `p-6`) to maximize data visibility."
+  },
+  "components": {
+    "Card": {
+      "style": "bg-card border border-border/40 hover:border-primary/50 transition-colors duration-300 rounded-xl shadow-none",
+      "usage": "Used for Tournament items, Player profiles, and Stat widgets."
+    },
+    "Button": {
+      "style": "rounded-md font-bold uppercase tracking-wider",
+      "variants": {
+        "default": "bg-primary text-primary-foreground hover:bg-primary/90",
+        "outline": "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        "ghost": "hover:bg-accent hover:text-accent-foreground"
+      }
+    },
+    "ScoreBoard": {
+      "style": "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 sticky top-0 z-50",
+      "instructions": "Must use the 'Teko' font for numbers. The serving player indicator must be a distinct colored dot (Red for TT, Lime for Badminton) next to the name."
+    },
+    "Bracket": {
+      "style": "Custom SVG or Flexbox implementation. Lines must be smooth (bezier curves preferred, or orthogonal with rounded corners).",
+      "instructions": "Do not use a library if it is hard to style. A simple flexbox tree with 'connector' divs is often better."
+    },
+    "StatusBadge": {
+      "style": "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "variants": {
+        "live": "border-transparent bg-red-500 text-white animate-pulse",
+        "upcoming": "border-transparent bg-blue-500 text-white",
+        "completed": "border-transparent bg-zinc-700 text-zinc-300"
+      }
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-black/40 border-b border-white/10",
+    "neon_glow": "shadow-[0_0_20px_-5px_var(--tw-shadow-color)]",
+    "grain_texture": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")",
+    "tracing_beam": "A moving gradient border effect for active cards."
+  },
+  "image_assets": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1701272873248-ee041b51b02b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MTJ8MHwxfHNlYXJjaHwxfHxpbmRvb3IlMjBzcG9ydHMlMjBoYWxsJTIwYmx1cnJlZCUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzcxNTM2Mzg1fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Blurred indoor sports hall/gym floor. Use with a heavy dark overlay (opacity 80-90%) for the login screen background."
+    },
+    "table_tennis_hero": {
+      "url": "https://images.unsplash.com/photo-1741096325036-731b74a03309?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwxfHx0YWJsZSUyMHRlbm5pcyUyMHBsYXllciUyMGRyYW1hdGljJTIwbGlnaHRpbmclMjBhY3Rpb258ZW58MHx8fHwxNzcxNTM2MzcyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Table tennis paddle on a blue table. Use for Table Tennis specific tournament headers."
+    },
+    "badminton_hero": {
+      "url": "https://images.unsplash.com/photo-1761286753703-570ed91dd90e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxiYWRtaW50b24lMjBwbGF5ZXIlMjBzbWFzaCUyMGFjdGlvbiUyMGhpZ2glMjBzaHV0dGVyJTIwc3BlZWR8ZW58MHx8fHwxNzcxNTM2MzczfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Badminton player at night. High contrast. Use for Badminton specific tournament headers."
+    },
+    "leaderboard_hero": {
+      "url": "https://images.pexels.com/photos/6250947/pexels-photo-6250947.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Gold and Silver medals. Use for the Leaderboard or Rankings page header."
+    },
+    "fallback_avatar": "https://ui.shadcn.com/avatars/01.png"
+  },
+  "universal_guidelines": {
+    "do_not_use": [
+      "Gradients on text (unless for specific 'hero' titles)",
+      "Rounded corners > 16px (keep it sharp/athletic)",
+      "Light mode by default (unless user toggles)",
+      "Default browser scrollbars (customize them to be thin and dark)"
+    ],
+    "must_do": [
+      "Use 'Barlow Condensed' for all uppercase headings.",
+      "Use 'Teko' for all score numbers.",
+      "Ensure the 'Live Score' view is readable from 10 feet away (large text).",
+      "Use Skeleton loaders for all data-fetching states."
+    ],
+    "accessibility": "Ensure all text on dark backgrounds has at least 4.5:1 contrast. Avoid using color alone to convey state (e.g., use icons + color for 'Winner')."
+  },
+  "instructions_to_main_agent": [
+    "1. Install the required fonts in `public/index.html` immediately.",
+    "2. Configure `tailwind.config.js` with the colors and font families specified.",
+    "3. Set up the `ThemeProvider` to default to 'dark'.",
+    "4. When building the 'Bracket' component, prioritize a CSS Grid/Flex approach over complex D3 libraries unless necessary for animation.",
+    "5. Use the provided image URLs for the respective sections. Do not use placeholders.",
+    "6. For the Dashboard, create a 'Bento Grid' layout using `col-span` classes."
+  ]
+}
