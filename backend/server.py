@@ -142,7 +142,7 @@ class SportScoringRules(BaseModel):
     sets_to_win: int = 2  # Best of 3 = 2, Best of 5 = 3
     points_to_win_set: int = 21  # Points needed to win a set
     points_must_win_by: int = 2  # Must win by this margin
-    max_points_per_set: int = 30  # Cap at this score (e.g., 30-29)
+    max_points_per_set: Optional[int] = None  # Cap at this score (e.g., 30-29), None = no cap
     tie_break_points: Optional[int] = None  # Points for tie-break set (if different)
     tie_break_at_set: Optional[int] = None  # When tie-break kicks in (e.g., 1-1 in best of 3)
 
