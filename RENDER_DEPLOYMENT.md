@@ -153,7 +153,45 @@ Destination: /index.html
 Action: Rewrite
 ```
 
-### Step 6: Update Google OAuth (If Using)
+### Step 6: Configure Mailjet for Email Verification (Recommended)
+
+Email verification helps ensure users provide valid email addresses.
+
+1. Go to [Mailjet](https://www.mailjet.com) and create a free account
+2. Navigate to **Account Settings** → **API Keys**
+3. Copy your **API Key** (public) and **Secret Key** (private)
+4. Add to your Render backend environment variables:
+   ```
+   MJ_APIKEY_PUBLIC=your-api-key
+   MJ_APIKEY_PRIVATE=your-secret-key
+   MJ_FROM_EMAIL=noreply@yourdomain.com
+   EMAIL_FROM_NAME=Rally Desk
+   ```
+5. (Optional) Add and verify your sending domain in Mailjet for better deliverability
+
+> **Note:** Without Mailjet configured, verification codes will be logged to the console as a fallback for development.
+
+### Step 7: Configure Facebook OAuth (Optional)
+
+1. Go to [Facebook Developers](https://developers.facebook.com)
+2. Click **My Apps** → **Create App**
+3. Select **"Authenticate and request data from users with Facebook Login"**
+4. Choose **"No, I'm not building a game"**
+5. Fill in app name and contact email
+6. After creation, go to **Facebook Login** → **Settings**
+7. Add **Valid OAuth Redirect URIs**:
+   - `https://yourdomain.com/dashboard`
+   - `https://www.yourdomain.com/dashboard`
+8. Go to **Settings** → **Basic** to find your **App ID**
+9. Add to your Render frontend environment variables:
+   ```
+   REACT_APP_FACEBOOK_APP_ID=your-app-id
+   ```
+10. (For production) Complete Facebook App Review to make app public
+
+> **Note:** The Facebook login button only appears when `REACT_APP_FACEBOOK_APP_ID` is configured.
+
+### Step 8: Configure Google OAuth (Optional)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Navigate to APIs & Services → Credentials
