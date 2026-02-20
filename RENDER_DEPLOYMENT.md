@@ -85,14 +85,18 @@
 
 5. Add Environment Variables:
    ```
-   MONGO_URL=mongodb+srv://<user>:<password>@cluster.xxxxx.mongodb.net/rallydesk
+   MONGO_URL=mongodb+srv://<user>:<password>@cluster.xxxxx.mongodb.net/rallydesk?retryWrites=true&w=majority
    DB_NAME=rallydesk
    JWT_SECRET=<generate-a-secure-random-string-64-chars>
-   CORS_ORIGINS=https://your-frontend-url.onrender.com
+   CORS_ORIGINS=https://rallydesk.app,https://www.rallydesk.app
    GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
    GOOGLE_CLIENT_SECRET=<your-google-oauth-secret>
-   GOOGLE_REDIRECT_URI=https://rallydesk-api.onrender.com/api/auth/google/callback
    ```
+
+   > ⚠️ **Important MONGO_URL format:**
+   > - Include `?retryWrites=true&w=majority` at the end
+   > - Database name (`rallydesk`) goes before the `?`
+   > - URL-encode special characters in password
 
 6. Click "Create Web Service"
 
