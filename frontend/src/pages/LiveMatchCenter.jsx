@@ -206,7 +206,7 @@ const LiveMatchCenter = () => {
           <Card className="bg-card border-border/40">
             <CardHeader>
               <CardTitle className="font-heading uppercase flex items-center gap-2">
-                <Clock className="w-5 h-5 text-yellow-500" />
+                <Clock className="w-5 h-5 text-amber-500" />
                 Coming Up Next
               </CardTitle>
             </CardHeader>
