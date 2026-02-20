@@ -421,13 +421,24 @@ MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/rallydesk
 DB_NAME=rallydesk
 JWT_SECRET=your-64-character-secret-key-here
 CORS_ORIGINS=https://rallydesk.app,https://www.rallydesk.app
+
+# Google OAuth (optional)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Mailjet Email (optional but recommended)
+MJ_APIKEY_PUBLIC=your-mailjet-public-key
+MJ_APIKEY_PRIVATE=your-mailjet-private-key
+MJ_FROM_EMAIL=noreply@rallydesk.app
+EMAIL_FROM_NAME=Rally Desk
 ```
 
 #### Frontend Environment Variables (Render Dashboard):
 ```
 REACT_APP_BACKEND_URL=https://api.rallydesk.app
+
+# Facebook OAuth (optional)
+REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
 ```
 
 ### Step 5: Update Google OAuth for Custom Domain
