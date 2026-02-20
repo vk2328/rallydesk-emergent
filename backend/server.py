@@ -581,13 +581,22 @@ async def create_player(tournament_id: str, player: PlayerCreate, current_user: 
         "rating": player.rating,
         "team_name": player.team_name,
         "club": player.club,
+        "division_id": player.division_id,
         "wins": 0,
         "losses": 0,
         "matches_played": 0,
         "created_at": now
     }
     await db.players.insert_one(player_doc)
-    return PlayerResponse(**player_doc)
+    
+    # Get division name if division_id is set
+    division_name = None
+    if player.division_id:
+        division = await db.divisions.find_one({"id": player.division_id}, {"_id": 0, "name": 1})
+        if division:
+            division_name = division.get("name")
+    
+    return PlayerResponse(**player_doc, division_name=division_name)
 
 @api_router.get("/tournaments/{tournament_id}/players", response_model=List[PlayerResponse])
 async def list_players(
