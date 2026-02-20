@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../lib/utils';
+import { API_URL, SPORTS } from '../lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Calendar } from '../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { toast } from 'sonner';
@@ -25,13 +24,11 @@ const TournamentCreate = () => {
   
   const [formData, setFormData] = useState({
     name: '',
-    sport: 'table_tennis',
-    format: 'single_elimination',
-    match_type: 'singles',
-    max_participants: 16,
+    venue: '',
+    timezone: 'UTC',
     description: '',
-    sets_to_win: 3,
-    points_per_set: 11
+    min_rest_minutes: 10,
+    buffer_minutes: 5
   });
 
   const handleSubmit = async (e) => {
@@ -44,9 +41,24 @@ const TournamentCreate = () => {
     setLoading(true);
     try {
       const payload = {
-        ...formData,
-        start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+        name: formData.name,
+        venue: formData.venue || null,
+        timezone: formData.timezone,
+        start_date: startDate.toISOString(),
+        end_date: endDate ? endDate.toISOString() : null,
+        description: formData.description || null,
+        settings: {
+          min_rest_minutes: formData.min_rest_minutes,
+          buffer_minutes: formData.buffer_minutes,
+          default_duration_minutes: {
+            table_tennis: 20,
+            badminton: 30,
+            volleyball: 45,
+            tennis: 60,
+            pickleball: 25
+          },
+          scorekeeper_can_assign: true
+        }
       };
       
       const response = await axios.post(`${API_URL}/tournaments`, payload, {
@@ -107,6 +119,17 @@ const TournamentCreate = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="venue">Venue</Label>
+                <Input
+                  id="venue"
+                  value={formData.venue}
+                  onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                  placeholder="e.g., City Sports Hall"
+                  data-testid="tournament-venue-input"
+                  className="bg-background/50"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -121,128 +144,11 @@ const TournamentCreate = () => {
             </CardContent>
           </Card>
 
-          {/* Sport & Format */}
-          <Card className="bg-card border-border/40">
-            <CardHeader>
-              <CardTitle className="font-heading uppercase text-lg">Sport & Format</CardTitle>
-              <CardDescription>Choose the sport and tournament format</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Sport *</Label>
-                  <Select value={formData.sport} onValueChange={(v) => setFormData({ ...formData, sport: v })}>
-                    <SelectTrigger data-testid="tournament-sport-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="table_tennis">🏓 Table Tennis</SelectItem>
-                      <SelectItem value="badminton">🏸 Badminton</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Match Type *</Label>
-                  <Select value={formData.match_type} onValueChange={(v) => setFormData({ ...formData, match_type: v })}>
-                    <SelectTrigger data-testid="tournament-matchtype-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="singles">Singles</SelectItem>
-                      <SelectItem value="doubles">Doubles</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Tournament Format *</Label>
-                <Select value={formData.format} onValueChange={(v) => setFormData({ ...formData, format: v })}>
-                  <SelectTrigger data-testid="tournament-format-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="single_elimination">Single Elimination</SelectItem>
-                    <SelectItem value="double_elimination">Double Elimination</SelectItem>
-                    <SelectItem value="round_robin">Round Robin</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formData.format === 'single_elimination' && 'One loss and you\'re out. Classic knockout format.'}
-                  {formData.format === 'double_elimination' && 'Two losses to be eliminated. Winners and losers brackets.'}
-                  {formData.format === 'round_robin' && 'Everyone plays everyone. Best for smaller groups.'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Settings */}
-          <Card className="bg-card border-border/40">
-            <CardHeader>
-              <CardTitle className="font-heading uppercase text-lg">Match Settings</CardTitle>
-              <CardDescription>Configure scoring rules</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="max_participants">Max Participants</Label>
-                  <Select 
-                    value={formData.max_participants.toString()} 
-                    onValueChange={(v) => setFormData({ ...formData, max_participants: parseInt(v) })}
-                  >
-                    <SelectTrigger data-testid="tournament-maxparticipants-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="4">4</SelectItem>
-                      <SelectItem value="8">8</SelectItem>
-                      <SelectItem value="16">16</SelectItem>
-                      <SelectItem value="32">32</SelectItem>
-                      <SelectItem value="64">64</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sets_to_win">Sets to Win</Label>
-                  <Select 
-                    value={formData.sets_to_win.toString()} 
-                    onValueChange={(v) => setFormData({ ...formData, sets_to_win: parseInt(v) })}
-                  >
-                    <SelectTrigger data-testid="tournament-setstowin-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 (Best of 1)</SelectItem>
-                      <SelectItem value="2">2 (Best of 3)</SelectItem>
-                      <SelectItem value="3">3 (Best of 5)</SelectItem>
-                      <SelectItem value="4">4 (Best of 7)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="points_per_set">Points per Set</Label>
-                  <Select 
-                    value={formData.points_per_set.toString()} 
-                    onValueChange={(v) => setFormData({ ...formData, points_per_set: parseInt(v) })}
-                  >
-                    <SelectTrigger data-testid="tournament-pointsperset-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="11">11 (Standard TT)</SelectItem>
-                      <SelectItem value="21">21 (Standard Badminton)</SelectItem>
-                      <SelectItem value="15">15 (Short Format)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Dates */}
+          {/* Schedule */}
           <Card className="bg-card border-border/40">
             <CardHeader>
               <CardTitle className="font-heading uppercase text-lg">Schedule</CardTitle>
-              <CardDescription>Tournament dates</CardDescription>
+              <CardDescription>Tournament dates and timing</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -300,6 +206,71 @@ const TournamentCreate = () => {
                   </Popover>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Settings */}
+          <Card className="bg-card border-border/40">
+            <CardHeader>
+              <CardTitle className="font-heading uppercase text-lg">Tournament Settings</CardTitle>
+              <CardDescription>Configure scheduling rules</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="min_rest">Min Rest Between Matches (minutes)</Label>
+                  <Input
+                    id="min_rest"
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={formData.min_rest_minutes}
+                    onChange={(e) => setFormData({ ...formData, min_rest_minutes: parseInt(e.target.value) || 10 })}
+                    data-testid="tournament-minrest-input"
+                    className="bg-background/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="buffer">Buffer Time Between Matches (minutes)</Label>
+                  <Input
+                    id="buffer"
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={formData.buffer_minutes}
+                    onChange={(e) => setFormData({ ...formData, buffer_minutes: parseInt(e.target.value) || 5 })}
+                    data-testid="tournament-buffer-input"
+                    className="bg-background/50"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                These settings help ensure players have adequate rest between matches.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Supported Sports */}
+          <Card className="bg-card border-border/40">
+            <CardHeader>
+              <CardTitle className="font-heading uppercase text-lg">Supported Sports</CardTitle>
+              <CardDescription>This tournament can support competitions in these sports</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                {SPORTS.map((sport) => (
+                  <div
+                    key={sport.value}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/40"
+                  >
+                    <span className="text-lg">{sport.icon}</span>
+                    <span className="text-sm">{sport.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                After creating the tournament, you can add players, resources, divisions, and competitions for each sport.
+              </p>
             </CardContent>
           </Card>
 
