@@ -33,6 +33,19 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - [x] Live Match Center (public dashboard, no login required)
 - [x] Google OAuth Integration
 
+### Draw Management (COMPLETE - Dec 2024)
+- [x] Automatic Draw Generation with seeding options:
+  - Random seeding (default)
+  - Rating-based seeding (seeds by player rating)
+  - Manual seeding (drag-to-reorder seed positions)
+- [x] Edit Bracket Mode for manual adjustments:
+  - Click matches to select and swap participants
+  - Checkmark buttons to manually advance winners
+  - Visual indicators for selected matches
+- [x] Bracket progression from round 1 through finals
+- [x] Auto-advance for bye matches
+- [x] Proper seeded bracket order (1 vs last, 2 vs second-last, etc.)
+
 ### Division Management (COMPLETE - Dec 2024)
 - [x] Division CRUD - Create, list, delete custom divisions (Open, Men's, Women's, Mixed, U18, etc.)
 - [x] Players assigned to divisions (division_id field)
