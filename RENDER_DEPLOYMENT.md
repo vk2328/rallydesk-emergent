@@ -488,3 +488,17 @@ REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
 ### Google OAuth fails
 - Update redirect URIs in Google Cloud Console
 - Ensure the callback URL matches exactly: `https://api.rallydesk.app/api/auth/google/callback`
+
+### Facebook OAuth fails
+- Verify `REACT_APP_FACEBOOK_APP_ID` is set in frontend environment
+- Check **Valid OAuth Redirect URIs** in Facebook App settings
+- Ensure your app domain is added to **App Domains**
+- For production: Complete Facebook App Review process
+- Check browser console for Facebook SDK errors
+
+### Email verification not working
+- Verify Mailjet API keys are correct
+- Check **MJ_FROM_EMAIL** is a valid email
+- If using custom domain, verify the domain in Mailjet for better deliverability
+- Check backend logs for email sending errors
+- Without Mailjet configured, codes are logged to console as fallback
