@@ -794,7 +794,7 @@ async def search_users(q: str, current_user: dict = Depends(require_auth)):
 
 @api_router.post("/tournaments/{tournament_id}/players", response_model=PlayerResponse)
 async def create_player(tournament_id: str, player: PlayerCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     player_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
