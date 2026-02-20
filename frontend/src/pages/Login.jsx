@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { Trophy, Target, Mail, RefreshCw } from 'lucide-react';
+
+// Facebook App ID - you'll need to set this in your environment
+const FACEBOOK_APP_ID = process.env.REACT_APP_FACEBOOK_APP_ID || '';
 
 const Login = () => {
   const [loginUsername, setLoginUsername] = useState('');
