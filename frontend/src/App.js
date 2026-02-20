@@ -11,7 +11,12 @@ import Resources from "./pages/Resources";
 import Tournaments from "./pages/Tournaments";
 import TournamentCreate from "./pages/TournamentCreate";
 import TournamentDetail from "./pages/TournamentDetail";
+import CompetitionDetail from "./pages/CompetitionDetail";
 import MatchScoreboard from "./pages/MatchScoreboard";
+import ControlDesk from "./pages/ControlDesk";
+import PublicBoard from "./pages/PublicBoard";
+import PlayerImport from "./pages/PlayerImport";
+import Standings from "./pages/Standings";
 import Leaderboard from "./pages/Leaderboard";
 
 const ProtectedRoute = ({ children }) => {
