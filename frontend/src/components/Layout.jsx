@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
 import { 
   DropdownMenu, 
@@ -12,12 +13,13 @@ import {
 } from '../components/ui/dropdown-menu';
 import { 
   Trophy, Users, Target, Grid3X3, Award, 
-  LayoutDashboard, Menu, LogOut, User, ChevronDown
+  LayoutDashboard, Menu, LogOut, User, ChevronDown, Sun, Moon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
 
