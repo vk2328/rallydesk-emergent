@@ -1800,6 +1800,40 @@ async def get_tournament_stats(tournament_id: str, current_user: dict = Depends(
         "sport_breakdown": sport_breakdown_dict
     }
 
+# ============== GLOBAL DASHBOARD STATS ==============
+
+@api_router.get("/stats/dashboard")
+async def get_dashboard_stats(current_user: dict = Depends(require_auth)):
+    """Get overall dashboard stats across all tournaments"""
+    total_tournaments = await db.tournaments.count_documents({})
+    active_tournaments = await db.tournaments.count_documents({"status": {"$in": ["in_progress", "draw_generated"]}})
+    total_players = await db.players.count_documents({})
+    total_teams = await db.teams.count_documents({})
+    total_matches = await db.matches.count_documents({})
+    completed_matches = await db.matches.count_documents({"status": "completed"})
+    
+    # Players by sport
+    pipeline = [
+        {"$unwind": {"path": "$sports", "preserveNullAndEmptyArrays": True}},
+        {"$group": {"_id": "$sports", "count": {"$sum": 1}}}
+    ]
+    sport_results = await db.players.aggregate(pipeline).to_list(20)
+    sport_breakdown = {r["_id"]: r["count"] for r in sport_results if r["_id"]}
+    
+    # Recent tournaments
+    recent_tournaments = await db.tournaments.find({}, {"_id": 0}).sort("created_at", -1).to_list(5)
+    
+    return {
+        "total_tournaments": total_tournaments,
+        "active_tournaments": active_tournaments,
+        "total_players": total_players,
+        "total_teams": total_teams,
+        "total_matches": total_matches,
+        "completed_matches": completed_matches,
+        "sport_breakdown": sport_breakdown,
+        "recent_tournaments": recent_tournaments
+    }
+
 # ============== ROOT ==============
 
 @api_router.get("/")
