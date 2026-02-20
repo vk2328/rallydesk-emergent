@@ -724,6 +724,124 @@ async def logout(response: Response):
     response.delete_cookie(key="session_token", path="/")
     return {"message": "Logged out"}
 
+# ============== FACEBOOK OAUTH ROUTES ==============
+
+class FacebookTokenRequest(BaseModel):
+    access_token: str
+
+@api_router.post("/auth/facebook/callback")
+async def facebook_callback(request: FacebookTokenRequest, response: Response):
+    """Exchange Facebook access token for local JWT session"""
+    import httpx
+    
+    # Verify the token with Facebook Graph API
+    async with httpx.AsyncClient() as client:
+        try:
+            fb_response = await client.get(
+                "https://graph.facebook.com/me",
+                params={
+                    "access_token": request.access_token,
+                    "fields": "id,email,name,picture"
+                }
+            )
+            if fb_response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid Facebook token")
+            
+            fb_user_data = fb_response.json()
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=f"Failed to verify Facebook token: {str(e)}")
+    
+    facebook_id = fb_user_data.get("id")
+    email = fb_user_data.get("email")
+    name = fb_user_data.get("name", "")
+    picture_data = fb_user_data.get("picture", {})
+    picture = picture_data.get("data", {}).get("url", "") if isinstance(picture_data, dict) else ""
+    
+    # If no email provided by Facebook, create a placeholder
+    if not email:
+        email = f"fb_{facebook_id}@facebook.placeholder"
+    
+    # Check if user exists by facebook_id first, then by email
+    existing_user = await db.users.find_one({"facebook_id": facebook_id}, {"_id": 0})
+    
+    if not existing_user:
+        # Check by email
+        existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if existing_user:
+        user_id = existing_user["id"]
+        # Update user data with Facebook info
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "display_name": name or existing_user.get("display_name"),
+                "picture": picture or existing_user.get("picture"),
+                "facebook_id": facebook_id,
+                "email_verified": True  # Facebook verified the email
+            }}
+        )
+    else:
+        # Create new user
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        username = f"fb_{facebook_id[:8]}_{str(uuid.uuid4())[:4]}"
+        
+        # Split name into first/last
+        name_parts = name.split(" ", 1) if name else ["User", ""]
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        
+        user_doc = {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "display_name": name,
+            "picture": picture,
+            "password_hash": "",  # OAuth user - no password
+            "role": "viewer",
+            "auth_provider": "facebook",
+            "facebook_id": facebook_id,
+            "email_verified": True,  # Facebook verified the email
+            "created_at": now
+        }
+        await db.users.insert_one(user_doc)
+    
+    # Create JWT token
+    token = create_access_token({"sub": user_id})
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7 * 24 * 60 * 60,
+        path="/"
+    )
+    
+    # Get full user data
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "first_name": user.get("first_name"),
+            "last_name": user.get("last_name"),
+            "display_name": user.get("display_name"),
+            "role": user["role"],
+            "picture": user.get("picture"),
+            "email_verified": user.get("email_verified", True),
+            "created_at": user["created_at"]
+        }
+    }
+
 # ============== TOURNAMENT ROUTES ==============
 
 class ModeratorUpdate(BaseModel):
