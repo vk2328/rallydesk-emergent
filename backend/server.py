@@ -2715,6 +2715,50 @@ async def get_public_board(tournament_id: str):
         "recent_results": recent_matches
     }
 
+# ============== LEADERBOARD ROUTES ==============
+
+@api_router.get("/leaderboard/{sport}")
+async def get_leaderboard(sport: str, current_user: dict = Depends(get_current_user)):
+    """Get player leaderboard for a specific sport across all tournaments"""
+    if sport not in SPORTS:
+        raise HTTPException(status_code=400, detail=f"Invalid sport. Must be one of: {SPORTS}")
+    
+    # Get all players who play this sport
+    players = await db.players.find(
+        {"sports": sport, "matches_played": {"$gt": 0}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Calculate win rate and prepare leaderboard data
+    leaderboard = []
+    for player in players:
+        wins = player.get("wins", 0)
+        losses = player.get("losses", 0)
+        matches_played = player.get("matches_played", 0)
+        
+        win_rate = round((wins / matches_played) * 100) if matches_played > 0 else 0
+        
+        leaderboard.append({
+            "id": player["id"],
+            "name": f"{player.get('first_name', '')} {player.get('last_name', '')}".strip(),
+            "skill_level": player.get("skill_level", "intermediate"),
+            "rating": player.get("rating", 0),
+            "wins": wins,
+            "losses": losses,
+            "matches_played": matches_played,
+            "win_rate": win_rate,
+            "rank": 0  # Will be set after sorting
+        })
+    
+    # Sort by wins (primary), then win_rate (secondary), then rating (tertiary)
+    leaderboard.sort(key=lambda x: (-x["wins"], -x["win_rate"], -x.get("rating", 0)))
+    
+    # Assign ranks
+    for i, entry in enumerate(leaderboard):
+        entry["rank"] = i + 1
+    
+    return leaderboard
+
 # ============== ROOT ==============
 
 @api_router.get("/")
