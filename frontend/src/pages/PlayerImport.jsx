@@ -162,7 +162,7 @@ Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Wome
                   <SelectValue placeholder="Select division (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No default division</SelectItem>
+                  <SelectItem value="none">No default division</SelectItem>
                   {divisions.map((d) => (
                     <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                   ))}
