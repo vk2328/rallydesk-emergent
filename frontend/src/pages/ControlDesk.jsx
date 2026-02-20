@@ -113,6 +113,13 @@ const ControlDesk = () => {
     (selectedSport === 'all' || m.competition_sport === selectedSport)
   );
 
+  // Get scheduled matches (assigned but not started)
+  const scheduledMatches = matches.filter(m => 
+    m.status === 'scheduled' && 
+    m.resource_id &&
+    (selectedSport === 'all' || m.competition_sport === selectedSport)
+  );
+
   // Get live matches
   const liveMatches = matches.filter(m => m.status === 'live');
 
