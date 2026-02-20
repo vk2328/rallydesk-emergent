@@ -20,6 +20,7 @@ import io
 from enum import Enum
 import qrcode
 import base64
+from services.email_service import send_verification_email, is_email_configured
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
