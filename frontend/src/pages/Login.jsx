@@ -410,10 +410,30 @@ const Login = () => {
                       className="bg-background/50"
                     />
                   </div>
+                  
+                  {/* Cloudflare Turnstile Bot Protection */}
+                  {TURNSTILE_SITE_KEY && (
+                    <div className="flex justify-center" data-testid="register-turnstile">
+                      <Turnstile
+                        ref={registerTurnstileRef}
+                        sitekey={TURNSTILE_SITE_KEY}
+                        onVerify={(token) => setRegisterTurnstileToken(token)}
+                        onError={() => {
+                          toast.error('Security verification failed. Please try again.');
+                          setRegisterTurnstileToken('');
+                        }}
+                        onExpire={() => {
+                          setRegisterTurnstileToken('');
+                        }}
+                        theme="dark"
+                      />
+                    </div>
+                  )}
+                  
                   <Button 
                     type="submit" 
                     className="w-full font-bold uppercase tracking-wider"
-                    disabled={loading}
+                    disabled={loading || (TURNSTILE_SITE_KEY && !registerTurnstileToken)}
                     data-testid="register-submit"
                   >
                     {loading ? 'Creating Account...' : 'Create Account'}
