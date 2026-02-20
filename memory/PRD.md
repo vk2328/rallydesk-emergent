@@ -198,3 +198,4 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 Application is stable. SaaS multi-tenant model implemented Feb 2025.
 Configurable scoring rules, digital referee scoring, and PDF generation added Feb 2025.
 Email verification with Mailjet integration complete Feb 2025.
+Facebook OAuth integration complete Feb 2025.
