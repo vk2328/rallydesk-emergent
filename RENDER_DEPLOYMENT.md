@@ -233,3 +233,101 @@ services:
 ```
 
 Then in Render: New → Blueprint → Connect repo → Deploy
+
+---
+
+## Custom Domain Setup (rallydesk.app)
+
+### Step 1: Add Custom Domains in Render
+
+#### For Frontend (Static Site):
+1. Go to **Render Dashboard** → Select your **frontend static site**
+2. Click **Settings** → Scroll to **Custom Domains**
+3. Click **Add Custom Domain**
+4. Add these domains:
+   - `rallydesk.app` (root domain)
+   - `www.rallydesk.app`
+5. Note the DNS targets Render provides (e.g., `rallydesk.onrender.com`)
+
+#### For Backend (Web Service):
+1. Select your **backend web service**
+2. **Settings** → **Custom Domains**
+3. Add: `api.rallydesk.app`
+4. Note the DNS target provided
+
+### Step 2: Configure DNS in GoDaddy
+
+1. Log in to **GoDaddy.com**
+2. Go to **My Products** → Find `rallydesk.app` → Click **DNS**
+3. Delete any existing A records for `@` (root)
+4. Add/Edit the following DNS records:
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| **A** | `@` | `216.24.57.1` | 600 |
+| **CNAME** | `www` | `rallydesk.onrender.com` | 600 |
+| **CNAME** | `api` | `rallydesk-api.onrender.com` | 600 |
+
+> **Note:** The IP `216.24.57.1` is Render's load balancer IP for root domains. Replace the CNAME values with the actual DNS targets Render provides.
+
+### Step 3: Verify & Enable SSL
+
+1. Back in **Render Dashboard**, wait for DNS propagation (5-30 minutes)
+2. Render will automatically issue an **SSL certificate**
+3. Status will change from "Pending" to **"Verified"** ✅
+
+### Step 4: Update Environment Variables for Custom Domain
+
+#### Backend Environment Variables (Render Dashboard):
+```
+MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/rallydesk
+DB_NAME=rallydesk
+JWT_SECRET=your-64-character-secret-key-here
+CORS_ORIGINS=https://rallydesk.app,https://www.rallydesk.app
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+#### Frontend Environment Variables (Render Dashboard):
+```
+REACT_APP_BACKEND_URL=https://api.rallydesk.app
+```
+
+### Step 5: Update Google OAuth for Custom Domain
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Navigate to **APIs & Services** → **Credentials**
+3. Edit your OAuth 2.0 Client
+4. Update **Authorized JavaScript origins**:
+   - `https://rallydesk.app`
+   - `https://www.rallydesk.app`
+5. Update **Authorized redirect URIs**:
+   - `https://api.rallydesk.app/api/auth/google/callback`
+
+### DNS Propagation Timeline
+- **Typical:** 5-30 minutes
+- **Maximum:** Up to 48 hours
+- **SSL Certificate:** Automatic after DNS verification
+
+---
+
+## Troubleshooting Custom Domain
+
+### Domain shows "Pending" in Render
+- DNS hasn't propagated yet - wait up to 30 minutes
+- Verify DNS records are correct in GoDaddy
+- Use [DNS Checker](https://dnschecker.org) to verify propagation
+
+### SSL Certificate not issued
+- Ensure domain is verified first
+- Check that no conflicting DNS records exist
+- Wait for DNS propagation to complete
+
+### API calls fail after domain change
+- Verify `REACT_APP_BACKEND_URL` is set to `https://api.rallydesk.app`
+- Check `CORS_ORIGINS` includes both `https://rallydesk.app` and `https://www.rallydesk.app`
+- Clear browser cache and try again
+
+### Google OAuth fails
+- Update redirect URIs in Google Cloud Console
+- Ensure the callback URL matches exactly: `https://api.rallydesk.app/api/auth/google/callback`
