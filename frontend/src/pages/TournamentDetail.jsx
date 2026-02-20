@@ -37,6 +37,11 @@ const TournamentDetail = () => {
   const [isAddCompetitionOpen, setIsAddCompetitionOpen] = useState(false);
   const [isAddDivisionOpen, setIsAddDivisionOpen] = useState(false);
   
+  // Edit dialog states
+  const [editingDivision, setEditingDivision] = useState(null);
+  const [editingResource, setEditingResource] = useState(null);
+  const [editingCompetition, setEditingCompetition] = useState(null);
+  
   // Form states
   const [newPlayer, setNewPlayer] = useState({ first_name: '', last_name: '', email: '', sports: [], division_id: '' });
   const [newResource, setNewResource] = useState({ sport: 'table_tennis', count: 1 });
@@ -44,6 +49,11 @@ const TournamentDetail = () => {
     name: '', sport: 'table_tennis', format: 'single_elimination', participant_type: 'single', division_id: ''
   });
   const [newDivision, setNewDivision] = useState({ name: '', description: '' });
+  
+  // Edit form states
+  const [editDivisionForm, setEditDivisionForm] = useState({ name: '', description: '' });
+  const [editResourceForm, setEditResourceForm] = useState({ name: '', sport: '' });
+  const [editCompetitionForm, setEditCompetitionForm] = useState({ name: '', format: '', participant_type: '' });
   
   // Filter states
   const [playerDivisionFilter, setPlayerDivisionFilter] = useState('all');
