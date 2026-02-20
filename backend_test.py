@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 
 class SportsArenaAPITester:
-    def __init__(self, base_url="https://rally-desk-preview.preview.emergentagent.com"):
+    def __init__(self, base_url="https://live-bracket-preview.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0
