@@ -151,6 +151,24 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - API endpoints: `/api/tournaments/{id}/scoring-rules`, `/api/tournaments/{id}/scoring-rules/{sport}`
 - Frontend UI in Tournament Settings tab with Edit dialog
 
+## Digital Referee Scoring (Feb 2025)
+- **QR Code + OTP Access** - Generate referee access codes for matches
+- Referees can update scores via mobile-friendly interface (no login required)
+- Scores marked as "pending" until organizer confirms
+- **Live score indicator** - Shows "UNOFFICIAL" badge when awaiting confirmation
+- API endpoints: 
+  - `POST /api/tournaments/{id}/matches/{matchId}/referee-access` - Generate QR/OTP
+  - `POST /api/referee/score/{tournamentId}/{matchId}` - Referee submits score
+  - `POST /api/tournaments/{id}/matches/{matchId}/confirm-score` - Organizer confirms
+- Frontend: `/referee/{tournamentId}/{matchId}?code=XXXXXX`
+
+## PDF Score Sheet Generation (Feb 2025)
+- **Download printable score sheets** for competitions
+- Includes all matches grouped by round
+- Empty placeholders for playoff matches (TBD / Winner of...)
+- Shows: Match #, Player names, Set score boxes, Winner, Referee signature
+- API endpoint: `GET /api/tournaments/{id}/competitions/{compId}/score-sheet-pdf`
+
 ## Project Health
 Application is stable. SaaS multi-tenant model implemented Feb 2025.
-Configurable scoring rules added Feb 2025.
+Configurable scoring rules, digital referee scoring, and PDF generation added Feb 2025.
