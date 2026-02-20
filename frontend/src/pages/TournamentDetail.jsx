@@ -1118,6 +1118,148 @@ const TournamentDetail = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Team Management / Moderators Card */}
+          <Card className="bg-card border-border/40">
+            <CardHeader>
+              <CardTitle className="font-heading uppercase flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Team Management
+              </CardTitle>
+              <CardDescription>
+                Add moderators who can help manage this tournament
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Owner */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Tournament Owner</p>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/30">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Crown className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">{user?.display_name || user?.username}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                  <Badge className="bg-primary text-primary-foreground">Owner</Badge>
+                </div>
+              </div>
+
+              {/* Moderators List */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Moderators ({moderators.length})
+                </p>
+                {moderators.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic p-3 border border-dashed rounded-lg text-center">
+                    No moderators added yet
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {moderators.map((mod) => (
+                      <div 
+                        key={mod.id} 
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/40"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
+                          <Users className="w-5 h-5 text-secondary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{mod.display_name || mod.username}</p>
+                          <p className="text-xs text-muted-foreground">{mod.email}</p>
+                        </div>
+                        <Badge variant="outline">Moderator</Badge>
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveModerator(mod.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            data-testid={`remove-moderator-${mod.id}`}
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add Moderator Search */}
+              {isOwner && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Add Moderator</p>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search by username or email..."
+                      value={userSearchQuery}
+                      onChange={(e) => handleSearchUsers(e.target.value)}
+                      className="pl-10"
+                      data-testid="moderator-search-input"
+                    />
+                  </div>
+                  
+                  {/* Search Results */}
+                  {userSearchResults.length > 0 && (
+                    <div className="mt-2 border rounded-lg divide-y max-h-60 overflow-y-auto">
+                      {userSearchResults.map((u) => (
+                        <div 
+                          key={u.id} 
+                          className="flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                            <Users className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{u.display_name || u.username}</p>
+                            <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddModerator(u.id)}
+                            data-testid={`add-moderator-${u.id}`}
+                          >
+                            <UserPlus className="w-4 h-4 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {userSearchQuery.length >= 2 && userSearchResults.length === 0 && !searchingUsers && (
+                    <p className="mt-2 text-sm text-muted-foreground text-center p-3">
+                      No users found matching "{userSearchQuery}"
+                    </p>
+                  )}
+                  
+                  {searchingUsers && (
+                    <p className="mt-2 text-sm text-muted-foreground text-center p-3">
+                      Searching...
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Permissions Info */}
+              <div className="p-3 rounded-lg bg-muted/20 border border-border/40">
+                <p className="text-sm font-medium mb-2">Moderator Permissions</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• View and manage players, teams, and resources</li>
+                  <li>• Create and manage competitions and matches</li>
+                  <li>• Update match scores and standings</li>
+                  <li>• Generate referee access codes</li>
+                </ul>
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  Only the owner can add/remove moderators and delete the tournament.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
