@@ -330,11 +330,11 @@ async def delete_player(player_id: str, current_user: dict = Depends(get_current
 async def download_sample_csv():
     """Download a sample CSV file for player import"""
     sample_data = [
-        ["name", "email", "phone", "sport", "skill_level"],
-        ["John Smith", "john@example.com", "+1234567890", "table_tennis", "intermediate"],
-        ["Jane Doe", "jane@example.com", "+0987654321", "badminton", "advanced"],
-        ["Mike Johnson", "mike@example.com", "", "table_tennis", "beginner"],
-        ["Sarah Wilson", "sarah@example.com", "+1122334455", "badminton", "pro"],
+        ["firstName", "lastName", "email", "phone", "gender", "age", "skillLevel", "sport", "team"],
+        ["John", "Smith", "john@example.com", "+1234567890", "male", "25", "intermediate", "table_tennis", "Team Alpha"],
+        ["Jane", "Doe", "jane@example.com", "+0987654321", "female", "28", "advanced", "badminton", "Team Beta"],
+        ["Mike", "Johnson", "mike@example.com", "", "male", "22", "beginner", "table_tennis", ""],
+        ["Sarah", "Wilson", "sarah@example.com", "+1122334455", "female", "30", "pro", "badminton", "Team Gamma"],
     ]
     
     output = io.StringIO()
@@ -364,17 +364,23 @@ async def upload_players_csv(file: UploadFile = File(...), current_user: dict = 
     
     valid_sports = ['table_tennis', 'badminton']
     valid_skills = ['beginner', 'intermediate', 'advanced', 'pro']
+    valid_genders = ['male', 'female', 'other']
     
     for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
         try:
-            name = row.get('name', '').strip()
+            first_name = row.get('firstName', '').strip()
+            last_name = row.get('lastName', '').strip()
             email = row.get('email', '').strip() or None
             phone = row.get('phone', '').strip() or None
+            gender = row.get('gender', '').strip().lower() or None
+            age_str = row.get('age', '').strip()
+            age = int(age_str) if age_str else None
+            skill_level = row.get('skillLevel', 'intermediate').strip().lower()
             sport = row.get('sport', '').strip().lower()
-            skill_level = row.get('skill_level', 'intermediate').strip().lower()
+            team = row.get('team', '').strip() or None
             
-            if not name:
-                errors.append(f"Row {row_num}: Name is required")
+            if not first_name or not last_name:
+                errors.append(f"Row {row_num}: First name and last name are required")
                 skipped_count += 1
                 continue
             
@@ -386,10 +392,14 @@ async def upload_players_csv(file: UploadFile = File(...), current_user: dict = 
             if skill_level not in valid_skills:
                 skill_level = 'intermediate'
             
+            if gender and gender not in valid_genders:
+                gender = None
+            
             # Check for duplicate by name and sport
-            existing = await db.players.find_one({"name": name, "sport": sport})
+            full_name = f"{first_name} {last_name}"
+            existing = await db.players.find_one({"first_name": first_name, "last_name": last_name, "sport": sport})
             if existing:
-                errors.append(f"Row {row_num}: Player '{name}' already exists for {sport}")
+                errors.append(f"Row {row_num}: Player '{full_name}' already exists for {sport}")
                 skipped_count += 1
                 continue
             
@@ -397,11 +407,15 @@ async def upload_players_csv(file: UploadFile = File(...), current_user: dict = 
             now = datetime.now(timezone.utc).isoformat()
             player_doc = {
                 "id": player_id,
-                "name": name,
+                "first_name": first_name,
+                "last_name": last_name,
                 "email": email,
                 "phone": phone,
-                "sport": sport,
+                "gender": gender,
+                "age": age,
                 "skill_level": skill_level,
+                "sport": sport,
+                "team": team,
                 "wins": 0,
                 "losses": 0,
                 "matches_played": 0,
