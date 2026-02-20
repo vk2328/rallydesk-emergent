@@ -66,6 +66,22 @@ const CompetitionDetail = () => {
       const registeredIds = new Set(participantsRes.data.map(p => p.id));
       setAvailablePlayers(playersRes.data.filter(p => !registeredIds.has(p.id)));
       setAvailableTeams(teamsRes.data.filter(t => !registeredIds.has(t.id)));
+      
+      // Set initial manual seed order
+      setManualSeedOrder(participantsRes.data.map(p => p.id));
+      
+      // Fetch bracket data if draw is generated
+      if (compRes.data.status !== 'draft') {
+        try {
+          const bracketRes = await axios.get(
+            `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/bracket`,
+            { headers: getAuthHeader() }
+          );
+          setBracketData(bracketRes.data);
+        } catch (e) {
+          // Bracket endpoint might not exist for older data
+        }
+      }
     } catch (error) {
       toast.error('Failed to load competition data');
       navigate(`/tournaments/${tournamentId}`);
