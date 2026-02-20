@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -6,8 +6,10 @@ import { API_URL } from '../lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Upload, FileText, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, Download, AlertCircle, CheckCircle, Users, Layers } from 'lucide-react';
 
 const PlayerImport = () => {
   const { tournamentId } = useParams();
@@ -17,6 +19,23 @@ const PlayerImport = () => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
+  const [divisions, setDivisions] = useState([]);
+  const [selectedDivision, setSelectedDivision] = useState('');
+
+  useEffect(() => {
+    fetchDivisions();
+  }, [tournamentId]);
+
+  const fetchDivisions = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/tournaments/${tournamentId}/divisions`, {
+        headers: getAuthHeader()
+      });
+      setDivisions(response.data);
+    } catch (error) {
+      console.error('Failed to fetch divisions:', error);
+    }
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
