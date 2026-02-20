@@ -2765,9 +2765,7 @@ async def get_leaderboard(sport: str, current_user: dict = Depends(get_current_u
 async def root():
     return {"message": "RallyDesk - Multi-Sport Tournament Platform API", "version": "2.0"}
 
-# Include router
-app.include_router(api_router)
-
+# CORS Middleware - must be added before routes
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -2775,6 +2773,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include router
+app.include_router(api_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
