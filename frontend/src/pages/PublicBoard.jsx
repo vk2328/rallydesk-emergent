@@ -99,7 +99,12 @@ const PublicBoard = () => {
                 >
                   <div className="bg-red-500 text-white px-4 py-2 flex items-center justify-between">
                     <span className="font-bold uppercase text-sm">{match.resource_label}</span>
-                    <Badge className="bg-white text-red-500">LIVE</Badge>
+                    <div className="flex items-center gap-2">
+                      {match.score_status === 'pending' && (
+                        <Badge className="bg-yellow-500 text-black text-[10px]">UNOFFICIAL</Badge>
+                      )}
+                      <Badge className="bg-white text-red-500">LIVE</Badge>
+                    </div>
                   </div>
                   <CardContent className="p-4">
                     <div className="text-center space-y-4">
@@ -130,6 +135,13 @@ const PublicBoard = () => {
                           </span>
                         </div>
                       </div>
+                      
+                      {match.score_status === 'pending' && (
+                        <div className="text-[10px] text-yellow-500 flex items-center justify-center gap-1">
+                          <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                          Score awaiting official confirmation
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
