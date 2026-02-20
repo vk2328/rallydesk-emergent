@@ -89,8 +89,10 @@ export const AuthProvider = ({ children }) => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  const isAdmin = () => user?.role === 'admin';
-  const isScorekeeper = () => user?.role === 'scorekeeper' || user?.role === 'admin';
+  // In SaaS mode, these checks are less relevant - permissions are per-tournament
+  // Keep for backwards compatibility but always return true for logged-in users
+  const isAdmin = () => !!user;  // Any logged-in user can manage their own tournaments
+  const isScorekeeper = () => !!user;  // Any logged-in user can score their own tournaments
 
   return (
     <AuthContext.Provider value={{ 
