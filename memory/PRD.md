@@ -10,6 +10,20 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 
 ## What's Been Implemented (February 2026)
 
+### ✅ Live Match Center (NEW - Public)
+- **No authentication required**
+- Real-time scores across ALL tournaments
+- Stats: Live Now, Upcoming, Completed Today, Active Tournaments
+- **Live Matches Grid** with:
+  - Tournament & competition names
+  - Player names and set scores
+  - Current set score (if in progress)
+  - Link to tournament board
+- **Coming Up Next** - Pending matches queue
+- **Recent Results** - Completed matches
+- Auto-refresh every 5 seconds
+- Default landing page (`/live`)
+
 ### ✅ Core Infrastructure
 - JWT Authentication (register, login, profile management)
 - **Google OAuth Social Login** via Emergent Auth
