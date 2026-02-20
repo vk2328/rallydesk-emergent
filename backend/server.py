@@ -126,6 +126,35 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 # Tournament Models
+class SportScoringRules(BaseModel):
+    """Scoring rules for a specific sport"""
+    sets_to_win: int = 2  # Best of 3 = 2, Best of 5 = 3
+    points_to_win_set: int = 21  # Points needed to win a set
+    points_must_win_by: int = 2  # Must win by this margin
+    max_points_per_set: int = 30  # Cap at this score (e.g., 30-29)
+    tie_break_points: Optional[int] = None  # Points for tie-break set (if different)
+    tie_break_at_set: Optional[int] = None  # When tie-break kicks in (e.g., 1-1 in best of 3)
+
+class DefaultScoringRules(BaseModel):
+    """Default scoring rules for all sports"""
+    table_tennis: SportScoringRules = Field(default_factory=lambda: SportScoringRules(
+        sets_to_win=3, points_to_win_set=11, points_must_win_by=2, max_points_per_set=None
+    ))
+    badminton: SportScoringRules = Field(default_factory=lambda: SportScoringRules(
+        sets_to_win=2, points_to_win_set=21, points_must_win_by=2, max_points_per_set=30
+    ))
+    volleyball: SportScoringRules = Field(default_factory=lambda: SportScoringRules(
+        sets_to_win=3, points_to_win_set=25, points_must_win_by=2, max_points_per_set=None,
+        tie_break_points=15, tie_break_at_set=2
+    ))
+    tennis: SportScoringRules = Field(default_factory=lambda: SportScoringRules(
+        sets_to_win=2, points_to_win_set=6, points_must_win_by=2, max_points_per_set=7,
+        tie_break_points=7, tie_break_at_set=6
+    ))
+    pickleball: SportScoringRules = Field(default_factory=lambda: SportScoringRules(
+        sets_to_win=2, points_to_win_set=11, points_must_win_by=2, max_points_per_set=None
+    ))
+
 class TournamentSettings(BaseModel):
     min_rest_minutes: int = 10
     buffer_minutes: int = 5
@@ -133,6 +162,7 @@ class TournamentSettings(BaseModel):
         "table_tennis": 20, "badminton": 30, "volleyball": 45, "tennis": 60, "pickleball": 25
     })
     scorekeeper_can_assign: bool = True
+    scoring_rules: Optional[DefaultScoringRules] = Field(default_factory=DefaultScoringRules)
 
 class TournamentCreate(BaseModel):
     name: str
