@@ -260,66 +260,119 @@ const Dashboard = () => {
       </div>
 
       {/* Sport Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card 
-          className="bg-card border-border/40 overflow-hidden relative group"
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(9, 9, 11, 0.95), rgba(9, 9, 11, 0.7)), url('https://images.unsplash.com/photo-1741096325036-731b74a03309?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwxfHx0YWJsZSUyMHRlbm5pcyUyMHBsYXllciUyMGRyYW1hdGljJTIwbGlnaHRpbmclMjBhY3Rpb258ZW58MHx8fHwxNzcxNTM2MzcyfDA&ixlib=rb-4.1.0&q=85')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        >
-          <CardContent className="p-6 relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-lg bg-table-tennis/20 flex items-center justify-center">
-                <span className="text-2xl">🏓</span>
+      <div>
+        <h2 className="font-heading text-xl uppercase tracking-tight mb-4">Supported Sports</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* Table Tennis */}
+          <Card className="bg-card border-border/40 hover:border-orange-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                  <span className="text-xl">🏓</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-orange-500">Table Tennis</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {stats?.sport_breakdown?.table_tennis || 0} Players
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-heading text-xl uppercase font-bold text-table-tennis">
-                  Table Tennis
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {stats?.sport_breakdown?.table_tennis || 0} Players
-                </p>
-              </div>
-            </div>
-            <Link to="/leaderboard/table_tennis">
-              <Button variant="outline" size="sm" className="border-table-tennis/30 hover:bg-table-tennis/10">
-                View Leaderboard <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+              <Link to="/leaderboard/table_tennis">
+                <Button variant="outline" size="sm" className="w-full text-xs">
+                  Leaderboard <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
 
-        <Card 
-          className="bg-card border-border/40 overflow-hidden relative group"
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(9, 9, 11, 0.95), rgba(9, 9, 11, 0.7)), url('https://images.unsplash.com/photo-1761286753703-570ed91dd90e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxiYWRtaW50b24lMjBwbGF5ZXIlMjBzbWFzaCUyMGFjdGlvbiUyMGhpZ2glMjBzaHV0dGVyJTIwc3BlZWR8ZW58MHx8fHwxNzcxNTM2MzczfDA&ixlib=rb-4.1.0&q=85')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        >
-          <CardContent className="p-6 relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-lg bg-badminton/20 flex items-center justify-center">
-                <span className="text-2xl">🏸</span>
+          {/* Badminton */}
+          <Card className="bg-card border-border/40 hover:border-green-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <span className="text-xl">🏸</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-500">Badminton</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {stats?.sport_breakdown?.badminton || 0} Players
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-heading text-xl uppercase font-bold text-badminton">
-                  Badminton
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {stats?.sport_breakdown?.badminton || 0} Players
-                </p>
+              <Link to="/leaderboard/badminton">
+                <Button variant="outline" size="sm" className="w-full text-xs">
+                  Leaderboard <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Volleyball */}
+          <Card className="bg-card border-border/40 hover:border-yellow-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                  <span className="text-xl">🏐</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-yellow-500">Volleyball</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {stats?.sport_breakdown?.volleyball || 0} Players
+                  </p>
+                </div>
               </div>
-            </div>
-            <Link to="/leaderboard/badminton">
-              <Button variant="outline" size="sm" className="border-badminton/30 hover:bg-badminton/10">
-                View Leaderboard <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+              <Link to="/leaderboard/volleyball">
+                <Button variant="outline" size="sm" className="w-full text-xs">
+                  Leaderboard <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Tennis */}
+          <Card className="bg-card border-border/40 hover:border-blue-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <span className="text-xl">🎾</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-500">Tennis</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {stats?.sport_breakdown?.tennis || 0} Players
+                  </p>
+                </div>
+              </div>
+              <Link to="/leaderboard/tennis">
+                <Button variant="outline" size="sm" className="w-full text-xs">
+                  Leaderboard <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Pickleball */}
+          <Card className="bg-card border-border/40 hover:border-purple-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <span className="text-xl">🥒</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-purple-500">Pickleball</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {stats?.sport_breakdown?.pickleball || 0} Players
+                  </p>
+                </div>
+              </div>
+              <Link to="/leaderboard/pickleball">
+                <Button variant="outline" size="sm" className="w-full text-xs">
+                  Leaderboard <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
