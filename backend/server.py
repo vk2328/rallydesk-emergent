@@ -1834,6 +1834,54 @@ async def get_dashboard_stats(current_user: dict = Depends(require_auth)):
         "recent_tournaments": recent_tournaments
     }
 
+# ============== PUBLIC BOARD ==============
+
+@api_router.get("/tournaments/{tournament_id}/public-board")
+async def get_public_board(tournament_id: str):
+    """Get public board data for spectators - no auth required"""
+    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    
+    # Get resources with current match info
+    resources = await db.resources.find({"tournament_id": tournament_id}, {"_id": 0}).to_list(100)
+    
+    # Populate current match info for each resource
+    for resource in resources:
+        if resource.get("current_match_id"):
+            match = await db.matches.find_one({"id": resource["current_match_id"]}, {"_id": 0})
+            if match:
+                # Get participant names
+                p1 = await db.players.find_one({"id": match.get("participant1_id")}, {"_id": 0})
+                p2 = await db.players.find_one({"id": match.get("participant2_id")}, {"_id": 0})
+                match["participant1_name"] = f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip() if p1 else "TBD"
+                match["participant2_name"] = f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip() if p2 else "TBD"
+                resource["current_match"] = match
+    
+    # Get recent completed matches
+    recent_matches = await db.matches.find(
+        {"tournament_id": tournament_id, "status": "completed"},
+        {"_id": 0}
+    ).sort("completed_at", -1).to_list(10)
+    
+    # Add participant names to recent results
+    for match in recent_matches:
+        p1 = await db.players.find_one({"id": match.get("participant1_id")}, {"_id": 0})
+        p2 = await db.players.find_one({"id": match.get("participant2_id")}, {"_id": 0})
+        match["participant1_name"] = f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip() if p1 else "Unknown"
+        match["participant2_name"] = f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip() if p2 else "Unknown"
+    
+    return {
+        "tournament": {
+            "id": tournament["id"],
+            "name": tournament["name"],
+            "venue": tournament.get("venue"),
+            "status": tournament["status"]
+        },
+        "resources": resources,
+        "recent_results": recent_matches
+    }
+
 # ============== ROOT ==============
 
 @api_router.get("/")
