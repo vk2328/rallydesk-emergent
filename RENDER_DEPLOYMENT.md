@@ -45,9 +45,26 @@
 
 1. Go to [MongoDB Atlas](https://www.mongodb.com/atlas)
 2. Create free cluster (M0 Sandbox - FREE)
-3. Create database user with password
-4. Whitelist IP: `0.0.0.0/0` (allow from anywhere)
-5. Get connection string: `mongodb+srv://<user>:<password>@cluster.xxxxx.mongodb.net/rallydesk`
+3. **Create database user:**
+   - Go to **Database Access** → **Add New Database User**
+   - Choose **Password** authentication
+   - Create username and strong password (avoid special characters like `@`, `%`, `/` in password)
+   - Set privileges to **Read and write to any database**
+
+4. **Configure Network Access (IMPORTANT!):**
+   - Go to **Network Access** → **Add IP Address**
+   - Click **Allow Access from Anywhere** (adds `0.0.0.0/0`)
+   - Click **Confirm**
+   - ⚠️ **This step is critical** - without it, Render cannot connect to your database
+
+5. **Get connection string:**
+   - Go to **Database** → **Connect** → **Drivers**
+   - Copy the connection string
+   - Replace `<password>` with your actual password
+   - Add database name before the `?`:
+   ```
+   mongodb+srv://username:password@cluster.xxxxx.mongodb.net/rallydesk?retryWrites=true&w=majority
+   ```
 
 ### Step 3: Deploy Backend on Render
 
