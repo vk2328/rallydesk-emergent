@@ -693,10 +693,11 @@ async def bulk_add_players(tournament_id: str, players: List[PlayerCreate], curr
 @api_router.get("/tournaments/{tournament_id}/players/csv/sample")
 async def download_players_csv_sample(tournament_id: str, current_user: dict = Depends(require_auth)):
     sample_data = [
-        ["firstName", "lastName", "email", "phone", "gender", "age", "skillLevel", "sports", "rating", "teamName", "club"],
-        ["John", "Smith", "john@example.com", "+1234567890", "male", "25", "intermediate", "table_tennis,badminton", "1500", "Team Alpha", "City Club"],
-        ["Jane", "Doe", "jane@example.com", "", "female", "28", "advanced", "badminton", "1800", "", "Metro Club"],
-        ["Mike", "Johnson", "", "", "male", "22", "beginner", "volleyball,tennis", "", "Team Beta", ""],
+        ["firstName", "lastName", "email", "phone", "gender", "age", "skillLevel", "sports", "rating", "team", "division", "club"],
+        ["John", "Smith", "john@example.com", "+1234567890", "male", "25", "intermediate", "table_tennis", "1500", "Team Alpha", "Open", "City Club"],
+        ["Jane", "Doe", "jane@example.com", "", "female", "28", "advanced", "badminton", "1800", "Team Alpha", "Open", "Metro Club"],
+        ["Mike", "Johnson", "", "", "male", "22", "beginner", "volleyball", "", "", "Men's", ""],
+        ["Sarah", "Wilson", "sarah@example.com", "", "female", "30", "advanced", "table_tennis", "1700", "Team Beta", "Women's", ""],
     ]
     
     output = io.StringIO()
@@ -711,7 +712,12 @@ async def download_players_csv_sample(tournament_id: str, current_user: dict = D
     )
 
 @api_router.post("/tournaments/{tournament_id}/players/csv/upload")
-async def upload_players_csv(tournament_id: str, file: UploadFile = File(...), current_user: dict = Depends(require_auth)):
+async def upload_players_csv(
+    tournament_id: str, 
+    file: UploadFile = File(...), 
+    division_id: Optional[str] = None,
+    current_user: dict = Depends(require_auth)
+):
     require_admin(current_user)
     
     if not file.filename.endswith('.csv'):
@@ -723,8 +729,24 @@ async def upload_players_csv(tournament_id: str, file: UploadFile = File(...), c
     
     created_count = 0
     skipped_count = 0
+    teams_created = 0
+    divisions_created = 0
     errors = []
     now = datetime.now(timezone.utc).isoformat()
+    
+    # Cache for divisions and teams
+    division_cache = {}  # name -> id
+    team_cache = {}  # name -> {id, player_ids}
+    
+    # Pre-load existing divisions
+    existing_divisions = await db.divisions.find({"tournament_id": tournament_id}, {"_id": 0}).to_list(100)
+    for d in existing_divisions:
+        division_cache[d["name"].lower()] = d["id"]
+    
+    # Pre-load existing teams
+    existing_teams = await db.teams.find({"tournament_id": tournament_id}, {"_id": 0}).to_list(500)
+    for t in existing_teams:
+        team_cache[t["name"].lower()] = {"id": t["id"], "player_ids": t.get("player_ids", [])}
     
     for row_num, row in enumerate(reader, start=2):
         try:
@@ -745,30 +767,86 @@ async def upload_players_csv(tournament_id: str, file: UploadFile = File(...), c
             sports_str = row.get('sports', row.get('sport', '')).strip()
             sports_list = [s.strip().lower().replace(' ', '_') for s in sports_str.split(',') if s.strip()]
             
-            # Create one player per sport if multiple sports
-            for sport in (sports_list if sports_list else [None]):
-                player_id = str(uuid.uuid4())
-                player_doc = {
-                    "id": player_id,
-                    "tournament_id": tournament_id,
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "email": row.get('email', '').strip() or None,
-                    "phone": row.get('phone', '').strip() or None,
-                    "gender": row.get('gender', '').strip().lower() or None,
-                    "age": int(row.get('age', 0)) if row.get('age', '').strip() else None,
-                    "skill_level": row.get('skillLevel', row.get('skill_level', 'intermediate')).strip().lower(),
-                    "sports": [sport] if sport else [],
-                    "rating": int(row.get('rating', 0)) if row.get('rating', '').strip() else None,
-                    "team_name": row.get('teamName', row.get('team_name', '')).strip() or None,
-                    "club": row.get('club', '').strip() or None,
-                    "wins": 0,
-                    "losses": 0,
-                    "matches_played": 0,
-                    "created_at": now
-                }
-                await db.players.insert_one(player_doc)
-                created_count += 1
+            # Handle division - from CSV or query param
+            player_division_id = division_id  # Default to query param
+            division_name = row.get('division', row.get('division_name', '')).strip()
+            
+            if division_name:
+                division_key = division_name.lower()
+                if division_key in division_cache:
+                    player_division_id = division_cache[division_key]
+                else:
+                    # Create new division
+                    new_division_id = str(uuid.uuid4())
+                    division_doc = {
+                        "id": new_division_id,
+                        "tournament_id": tournament_id,
+                        "name": division_name,
+                        "description": f"Auto-created from CSV import",
+                        "eligibility": None,
+                        "created_at": now
+                    }
+                    await db.divisions.insert_one(division_doc)
+                    division_cache[division_key] = new_division_id
+                    player_division_id = new_division_id
+                    divisions_created += 1
+            
+            # Handle team from CSV
+            team_name = row.get('team', row.get('teamName', row.get('team_name', ''))).strip()
+            
+            # Create player
+            player_id = str(uuid.uuid4())
+            player_doc = {
+                "id": player_id,
+                "tournament_id": tournament_id,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": row.get('email', '').strip() or None,
+                "phone": row.get('phone', '').strip() or None,
+                "gender": row.get('gender', '').strip().lower() or None,
+                "age": int(row.get('age', 0)) if row.get('age', '').strip() else None,
+                "skill_level": row.get('skillLevel', row.get('skill_level', 'intermediate')).strip().lower(),
+                "sports": sports_list if sports_list else [],
+                "rating": int(row.get('rating', 0)) if row.get('rating', '').strip() else None,
+                "team_name": team_name or None,
+                "club": row.get('club', '').strip() or None,
+                "division_id": player_division_id,
+                "wins": 0,
+                "losses": 0,
+                "matches_played": 0,
+                "created_at": now
+            }
+            await db.players.insert_one(player_doc)
+            created_count += 1
+            
+            # Handle team creation/association
+            if team_name:
+                team_key = team_name.lower()
+                if team_key in team_cache:
+                    # Add player to existing team
+                    team_data = team_cache[team_key]
+                    if player_id not in team_data["player_ids"]:
+                        team_data["player_ids"].append(player_id)
+                        await db.teams.update_one(
+                            {"id": team_data["id"]},
+                            {"$push": {"player_ids": player_id}}
+                        )
+                else:
+                    # Create new team
+                    new_team_id = str(uuid.uuid4())
+                    team_doc = {
+                        "id": new_team_id,
+                        "tournament_id": tournament_id,
+                        "name": team_name,
+                        "player_ids": [player_id],
+                        "sport": sports_list[0] if sports_list else None,
+                        "wins": 0,
+                        "losses": 0,
+                        "created_at": now
+                    }
+                    await db.teams.insert_one(team_doc)
+                    team_cache[team_key] = {"id": new_team_id, "player_ids": [player_id]}
+                    teams_created += 1
                 
         except Exception as e:
             errors.append(f"Row {row_num}: {str(e)}")
@@ -778,6 +856,8 @@ async def upload_players_csv(tournament_id: str, file: UploadFile = File(...), c
         "message": "CSV import completed",
         "created": created_count,
         "skipped": skipped_count,
+        "teams_created": teams_created,
+        "divisions_created": divisions_created,
         "errors": errors[:10]
     }
 
