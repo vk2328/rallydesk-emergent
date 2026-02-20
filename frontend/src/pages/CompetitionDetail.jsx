@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../components/ui/checkbox';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Skeleton } from '../components/ui/skeleton';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, Users, Trophy, Play, Plus, Grid3X3, 
-  Award, ChevronRight, X, RefreshCw, Swords
+  Award, ChevronRight, X, RefreshCw, Swords, Settings2,
+  ArrowUpDown, GripVertical, Check, Shuffle
 } from 'lucide-react';
 
 const CompetitionDetail = () => {
