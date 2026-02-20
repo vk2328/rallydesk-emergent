@@ -66,19 +66,27 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 class PlayerCreate(BaseModel):
-    name: str
+    first_name: str
+    last_name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-    sport: str  # table_tennis, badminton
+    gender: Optional[str] = None  # male, female, other
+    age: Optional[int] = None
     skill_level: Optional[str] = "intermediate"  # beginner, intermediate, advanced, pro
+    sport: str  # table_tennis, badminton
+    team: Optional[str] = None
 
 class PlayerResponse(BaseModel):
     id: str
-    name: str
+    first_name: str
+    last_name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-    sport: str
+    gender: Optional[str] = None
+    age: Optional[int] = None
     skill_level: str
+    sport: str
+    team: Optional[str] = None
     wins: int = 0
     losses: int = 0
     matches_played: int = 0
