@@ -51,15 +51,15 @@ const LiveMatchCenter = () => {
   return (
     <div className="min-h-screen bg-background" data-testid="live-match-center">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border-b border-border/40">
+      <div className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-b border-border/40">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-primary/30 flex items-center justify-center">
-                <Activity className="w-8 h-8 text-primary animate-pulse" />
+              <div className="w-16 h-16 rounded-xl bg-emerald-500/30 flex items-center justify-center">
+                <Activity className="w-8 h-8 text-emerald-400 animate-pulse" />
               </div>
               <div>
-                <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight uppercase text-primary">
+                <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight uppercase text-emerald-400">
                   Live Match Center
                 </h1>
                 <p className="text-muted-foreground mt-1">
