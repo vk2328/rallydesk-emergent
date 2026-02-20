@@ -2827,6 +2827,371 @@ async def get_dashboard_stats(current_user: dict = Depends(require_auth)):
         "recent_tournaments": recent_tournaments
     }
 
+# ============== REFEREE DIGITAL SCORING ==============
+
+def generate_access_code():
+    """Generate 6-digit access code"""
+    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+def generate_qr_code_base64(data: str) -> str:
+    """Generate QR code as base64 string"""
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+@api_router.post("/tournaments/{tournament_id}/matches/{match_id}/referee-access")
+async def generate_referee_access(
+    tournament_id: str, 
+    match_id: str, 
+    referee_name: Optional[str] = None,
+    current_user: dict = Depends(require_auth)
+):
+    """Generate QR code and OTP for referee to access match scoring"""
+    await require_tournament_access(tournament_id, current_user)
+    
+    match = await db.matches.find_one({"id": match_id, "tournament_id": tournament_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    # Generate access credentials
+    access_code = generate_access_code()
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    
+    # Create scoring URL (will be embedded in QR)
+    base_url = os.environ.get("FRONTEND_URL", "https://rallydesk.app")
+    scoring_url = f"{base_url}/referee/{tournament_id}/{match_id}?code={access_code}"
+    
+    # Generate QR code
+    qr_code_base64 = generate_qr_code_base64(scoring_url)
+    
+    referee_access = {
+        "access_code": access_code,
+        "expires_at": expires_at,
+        "referee_name": referee_name,
+        "scoring_url": scoring_url,
+        "qr_code": qr_code_base64,
+        "generated_by": current_user["id"],
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update match with referee access
+    await db.matches.update_one(
+        {"id": match_id},
+        {"$set": {"referee_access": referee_access, "score_status": "pending"}}
+    )
+    
+    return {
+        "access_code": access_code,
+        "scoring_url": scoring_url,
+        "qr_code": f"data:image/png;base64,{qr_code_base64}",
+        "expires_at": expires_at,
+        "message": "Share the QR code or access code with the referee"
+    }
+
+@api_router.post("/referee/score/{tournament_id}/{match_id}")
+async def referee_update_score(
+    tournament_id: str,
+    match_id: str,
+    score_update: RefereeScoreUpdate
+):
+    """Referee updates match score using access code - NO AUTH REQUIRED"""
+    match = await db.matches.find_one({"id": match_id, "tournament_id": tournament_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    referee_access = match.get("referee_access")
+    if not referee_access:
+        raise HTTPException(status_code=403, detail="No referee access configured for this match")
+    
+    # Verify access code
+    if referee_access.get("access_code") != score_update.access_code:
+        raise HTTPException(status_code=403, detail="Invalid access code")
+    
+    # Check expiration
+    expires_at = datetime.fromisoformat(referee_access["expires_at"].replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=403, detail="Access code has expired")
+    
+    # Update scores
+    scores_data = [s.model_dump() for s in score_update.scores]
+    
+    update_data = {
+        "scores": scores_data,
+        "score_status": "pending",  # Needs organizer confirmation
+        "referee_updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if score_update.winner_id:
+        update_data["winner_id"] = score_update.winner_id
+        update_data["status"] = "completed"
+    
+    if score_update.notes:
+        update_data["referee_notes"] = score_update.notes
+    
+    await db.matches.update_one({"id": match_id}, {"$set": update_data})
+    
+    return {"message": "Score updated successfully. Awaiting organizer confirmation."}
+
+@api_router.get("/referee/match/{tournament_id}/{match_id}")
+async def get_referee_match_info(
+    tournament_id: str,
+    match_id: str,
+    code: str
+):
+    """Get match info for referee scoring page - validates access code"""
+    match = await db.matches.find_one({"id": match_id, "tournament_id": tournament_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    referee_access = match.get("referee_access")
+    if not referee_access or referee_access.get("access_code") != code:
+        raise HTTPException(status_code=403, detail="Invalid access code")
+    
+    # Check expiration
+    expires_at = datetime.fromisoformat(referee_access["expires_at"].replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=403, detail="Access code has expired")
+    
+    # Get competition for scoring rules
+    competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
+    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0, "name": 1, "settings": 1})
+    
+    # Get participant names
+    participant_type = competition.get("participant_type", "single") if competition else "single"
+    collection = "players" if participant_type == "single" else "teams"
+    
+    p1_name, p2_name = "TBD", "TBD"
+    if match.get("participant1_id"):
+        p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0})
+        p1_name = p1.get("name") or f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip() if p1 else "TBD"
+    if match.get("participant2_id"):
+        p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0})
+        p2_name = p2.get("name") or f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip() if p2 else "TBD"
+    
+    # Get scoring rules for this sport
+    sport = competition.get("sport", "table_tennis") if competition else "table_tennis"
+    scoring_rules = tournament.get("settings", {}).get("scoring_rules", {}).get(sport, {})
+    
+    return {
+        "match_id": match_id,
+        "tournament_name": tournament.get("name") if tournament else "",
+        "competition_name": competition.get("name") if competition else "",
+        "sport": sport,
+        "participant1": {"id": match.get("participant1_id"), "name": p1_name},
+        "participant2": {"id": match.get("participant2_id"), "name": p2_name},
+        "round_number": match.get("round_number"),
+        "match_number": match.get("match_number"),
+        "current_scores": match.get("scores", []),
+        "scoring_rules": scoring_rules,
+        "status": match.get("status")
+    }
+
+@api_router.post("/tournaments/{tournament_id}/matches/{match_id}/confirm-score")
+async def confirm_match_score(
+    tournament_id: str,
+    match_id: str,
+    current_user: dict = Depends(require_auth)
+):
+    """Organizer confirms the score submitted by referee"""
+    await require_tournament_access(tournament_id, current_user)
+    
+    match = await db.matches.find_one({"id": match_id, "tournament_id": tournament_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    await db.matches.update_one(
+        {"id": match_id},
+        {"$set": {
+            "score_status": "confirmed",
+            "confirmed_by": current_user["id"],
+            "confirmed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Score confirmed"}
+
+@api_router.post("/tournaments/{tournament_id}/matches/{match_id}/dispute-score")
+async def dispute_match_score(
+    tournament_id: str,
+    match_id: str,
+    reason: str,
+    current_user: dict = Depends(require_auth)
+):
+    """Organizer disputes the score submitted by referee"""
+    await require_tournament_access(tournament_id, current_user)
+    
+    await db.matches.update_one(
+        {"id": match_id},
+        {"$set": {
+            "score_status": "disputed",
+            "dispute_reason": reason,
+            "disputed_by": current_user["id"],
+            "disputed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Score disputed"}
+
+# ============== PDF SCORE SHEET GENERATION ==============
+
+@api_router.get("/tournaments/{tournament_id}/competitions/{competition_id}/score-sheet-pdf")
+async def generate_score_sheet_pdf(
+    tournament_id: str,
+    competition_id: str,
+    current_user: dict = Depends(require_auth)
+):
+    """Generate PDF score sheet for all matches in a competition"""
+    await require_tournament_access(tournament_id, current_user)
+    
+    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+    competition = await db.competitions.find_one({"id": competition_id, "tournament_id": tournament_id}, {"_id": 0})
+    
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    matches = await db.matches.find(
+        {"competition_id": competition_id},
+        {"_id": 0}
+    ).sort([("round_number", 1), ("match_number", 1)]).to_list(500)
+    
+    # Get participant names
+    participant_type = competition.get("participant_type", "single")
+    collection = "players" if participant_type == "single" else "teams"
+    
+    participant_names = {}
+    for match in matches:
+        for pid in [match.get("participant1_id"), match.get("participant2_id")]:
+            if pid and pid not in participant_names:
+                p = await db[collection].find_one({"id": pid}, {"_id": 0})
+                if p:
+                    participant_names[pid] = p.get("name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
+    
+    # Get scoring rules
+    sport = competition.get("sport", "table_tennis")
+    scoring_rules = tournament.get("settings", {}).get("scoring_rules", {}).get(sport, {})
+    sets_to_win = scoring_rules.get("sets_to_win", 3)
+    total_sets = (sets_to_win * 2) - 1  # Best of 3 = 5 sets max, Best of 2 = 3 sets max
+    
+    # Create PDF
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=1*cm, bottomMargin=1*cm)
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, alignment=1)
+    subtitle_style = ParagraphStyle('Subtitle', parent=styles['Heading2'], fontSize=12, alignment=1)
+    
+    elements = []
+    
+    # Title
+    elements.append(Paragraph(f"{tournament.get('name', 'Tournament')} - {competition.get('name', 'Competition')}", title_style))
+    elements.append(Paragraph(f"Score Sheet - {sport.replace('_', ' ').title()}", subtitle_style))
+    elements.append(Spacer(1, 0.5*cm))
+    
+    # Group matches by round
+    rounds = {}
+    for match in matches:
+        round_num = match.get("round_number", 1)
+        if round_num not in rounds:
+            rounds[round_num] = []
+        rounds[round_num].append(match)
+    
+    # Determine round names based on format
+    format_type = competition.get("format", "single_elimination")
+    max_round = max(rounds.keys()) if rounds else 1
+    
+    def get_round_name(round_num, max_round, format_type):
+        if format_type == "round_robin":
+            return f"Round {round_num}"
+        else:
+            rounds_from_final = max_round - round_num
+            if rounds_from_final == 0:
+                return "Final"
+            elif rounds_from_final == 1:
+                return "Semi-Final"
+            elif rounds_from_final == 2:
+                return "Quarter-Final"
+            else:
+                return f"Round {round_num}"
+    
+    for round_num in sorted(rounds.keys()):
+        round_matches = rounds[round_num]
+        round_name = get_round_name(round_num, max_round, format_type)
+        
+        elements.append(Paragraph(f"<b>{round_name}</b>", styles['Heading3']))
+        elements.append(Spacer(1, 0.3*cm))
+        
+        # Create table for matches
+        header = ['#', 'Player/Team 1', 'Player/Team 2'] + [f'Set {i+1}' for i in range(total_sets)] + ['Winner', 'Referee Sign']
+        table_data = [header]
+        
+        for match in round_matches:
+            p1_name = participant_names.get(match.get("participant1_id"), "TBD / Winner of...")
+            p2_name = participant_names.get(match.get("participant2_id"), "TBD / Winner of...")
+            
+            # Check if this is a playoff match (participants not yet determined)
+            if not match.get("participant1_id"):
+                p1_name = f"Winner Match {match.get('bracket_position', '?').split('_')[0] if match.get('bracket_position') else '?'}"
+            if not match.get("participant2_id"):
+                p2_name = f"Winner Match {match.get('bracket_position', '?').split('_')[1] if match.get('bracket_position') else '?'}"
+            
+            # Set score boxes (empty for filling in)
+            set_scores = ['      ' for _ in range(total_sets)]
+            if match.get("scores"):
+                for i, score in enumerate(match["scores"][:total_sets]):
+                    set_scores[i] = f"{score.get('score1', '')}-{score.get('score2', '')}"
+            
+            winner = participant_names.get(match.get("winner_id"), "")
+            
+            row = [
+                str(match.get("match_number", "")),
+                p1_name[:25] + "..." if len(p1_name) > 25 else p1_name,
+                p2_name[:25] + "..." if len(p2_name) > 25 else p2_name,
+            ] + set_scores + [winner, ""]
+            
+            table_data.append(row)
+        
+        # Style the table
+        col_widths = [0.5*cm, 5*cm, 5*cm] + [1.5*cm] * total_sets + [4*cm, 3*cm]
+        table = Table(table_data, colWidths=col_widths)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ROWHEIGHT', (0, 1), (-1, -1), 1*cm),
+        ]))
+        
+        elements.append(table)
+        elements.append(Spacer(1, 0.5*cm))
+    
+    # Footer
+    elements.append(Spacer(1, 1*cm))
+    elements.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles['Normal']))
+    elements.append(Paragraph(f"Scoring: Best of {total_sets} sets | Points to win set: {scoring_rules.get('points_to_win_set', 11)}", styles['Normal']))
+    
+    doc.build(elements)
+    buffer.seek(0)
+    
+    filename = f"score_sheet_{competition.get('name', 'competition').replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 # ============== LIVE MATCH CENTER (PUBLIC) ==============
 
 @api_router.get("/live-match-center")
