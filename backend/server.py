@@ -467,7 +467,13 @@ async def require_tournament_access(tournament_id: str, user: dict, require_owne
 # ============== AUTH ROUTES ==============
 
 @api_router.post("/auth/register", response_model=TokenResponse)
-async def register(user_data: UserCreate):
+async def register(user_data: UserCreate, request: Request):
+    # Verify Turnstile token if configured
+    if is_turnstile_enabled() and user_data.turnstile_token:
+        client_ip = request.client.host if request.client else None
+        if not await verify_turnstile_token(user_data.turnstile_token, client_ip):
+            raise HTTPException(status_code=400, detail="Security verification failed. Please try again.")
+    
     existing = await db.users.find_one({"$or": [{"email": user_data.email}, {"username": user_data.username}]})
     if existing:
         raise HTTPException(status_code=400, detail="Email or username already registered")
