@@ -602,23 +602,41 @@ async def create_player(tournament_id: str, player: PlayerCreate, current_user: 
 async def list_players(
     tournament_id: str, 
     sport: Optional[str] = None,
+    division_id: Optional[str] = None,
     sort_by: Optional[str] = "first_name",
     current_user: dict = Depends(require_auth)
 ):
     query = {"tournament_id": tournament_id}
     if sport and sport != "all":
         query["sports"] = sport
+    if division_id and division_id != "all":
+        query["division_id"] = division_id
     
     sort_field = sort_by if sort_by in ["first_name", "last_name", "email", "team_name", "rating"] else "first_name"
     players = await db.players.find(query, {"_id": 0}).sort(sort_field, 1).to_list(1000)
-    return [PlayerResponse(**p) for p in players]
+    
+    # Get all divisions for name mapping
+    divisions = await db.divisions.find({"tournament_id": tournament_id}, {"_id": 0, "id": 1, "name": 1}).to_list(100)
+    division_map = {d["id"]: d["name"] for d in divisions}
+    
+    result = []
+    for p in players:
+        division_name = division_map.get(p.get("division_id")) if p.get("division_id") else None
+        result.append(PlayerResponse(**p, division_name=division_name))
+    return result
 
 @api_router.get("/tournaments/{tournament_id}/players/{player_id}", response_model=PlayerResponse)
 async def get_player(tournament_id: str, player_id: str, current_user: dict = Depends(require_auth)):
     player = await db.players.find_one({"id": player_id, "tournament_id": tournament_id}, {"_id": 0})
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
-    return PlayerResponse(**player)
+    
+    division_name = None
+    if player.get("division_id"):
+        division = await db.divisions.find_one({"id": player["division_id"]}, {"_id": 0, "name": 1})
+        if division:
+            division_name = division.get("name")
+    return PlayerResponse(**player, division_name=division_name)
 
 @api_router.put("/tournaments/{tournament_id}/players/{player_id}")
 async def update_player(tournament_id: str, player_id: str, player: PlayerCreate, current_user: dict = Depends(require_auth)):
