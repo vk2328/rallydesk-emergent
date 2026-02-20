@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, setToken } = useAuth();
   const hasProcessed = useRef(false);
 
   useEffect(() => {
@@ -38,9 +38,9 @@ const AuthCallback = () => {
 
         const { access_token, user } = response.data;
         
-        // Store token and user
-        localStorage.setItem('token', access_token);
-        localStorage.setItem('user', JSON.stringify(user));
+        // Store token and user with consistent key
+        localStorage.setItem('rallydesk_token', access_token);
+        setToken(access_token);
         setUser(user);
         
         toast.success(`Welcome, ${user.display_name || user.username}!`);
@@ -53,7 +53,7 @@ const AuthCallback = () => {
     };
 
     processAuth();
-  }, [navigate, setUser]);
+  }, [navigate, setUser, setToken]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
