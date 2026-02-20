@@ -314,6 +314,102 @@ async def delete_player(player_id: str, current_user: dict = Depends(get_current
         raise HTTPException(status_code=404, detail="Player not found")
     return {"message": "Player deleted"}
 
+@api_router.get("/players/csv/sample")
+async def download_sample_csv():
+    """Download a sample CSV file for player import"""
+    sample_data = [
+        ["name", "email", "phone", "sport", "skill_level"],
+        ["John Smith", "john@example.com", "+1234567890", "table_tennis", "intermediate"],
+        ["Jane Doe", "jane@example.com", "+0987654321", "badminton", "advanced"],
+        ["Mike Johnson", "mike@example.com", "", "table_tennis", "beginner"],
+        ["Sarah Wilson", "sarah@example.com", "+1122334455", "badminton", "pro"],
+    ]
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(sample_data)
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=players_sample.csv"}
+    )
+
+@api_router.post("/players/csv/upload")
+async def upload_players_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Upload players from a CSV file"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.DictReader(io.StringIO(decoded))
+    
+    created_count = 0
+    skipped_count = 0
+    errors = []
+    
+    valid_sports = ['table_tennis', 'badminton']
+    valid_skills = ['beginner', 'intermediate', 'advanced', 'pro']
+    
+    for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+        try:
+            name = row.get('name', '').strip()
+            email = row.get('email', '').strip() or None
+            phone = row.get('phone', '').strip() or None
+            sport = row.get('sport', '').strip().lower()
+            skill_level = row.get('skill_level', 'intermediate').strip().lower()
+            
+            if not name:
+                errors.append(f"Row {row_num}: Name is required")
+                skipped_count += 1
+                continue
+            
+            if sport not in valid_sports:
+                errors.append(f"Row {row_num}: Invalid sport '{sport}'. Use 'table_tennis' or 'badminton'")
+                skipped_count += 1
+                continue
+            
+            if skill_level not in valid_skills:
+                skill_level = 'intermediate'
+            
+            # Check for duplicate by name and sport
+            existing = await db.players.find_one({"name": name, "sport": sport})
+            if existing:
+                errors.append(f"Row {row_num}: Player '{name}' already exists for {sport}")
+                skipped_count += 1
+                continue
+            
+            player_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+            player_doc = {
+                "id": player_id,
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "sport": sport,
+                "skill_level": skill_level,
+                "wins": 0,
+                "losses": 0,
+                "matches_played": 0,
+                "created_by": current_user["id"],
+                "created_at": now
+            }
+            await db.players.insert_one(player_doc)
+            created_count += 1
+            
+        except Exception as e:
+            errors.append(f"Row {row_num}: {str(e)}")
+            skipped_count += 1
+    
+    return {
+        "message": f"CSV import completed",
+        "created": created_count,
+        "skipped": skipped_count,
+        "errors": errors[:10] if errors else []  # Return first 10 errors
+    }
+
 # ============== TEAM ROUTES ==============
 
 @api_router.post("/teams", response_model=TeamResponse)
