@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Turnstile from 'react-turnstile';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -8,10 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
-import { Trophy, Target, Mail, RefreshCw } from 'lucide-react';
+import { Trophy, Target, Mail, RefreshCw, Shield } from 'lucide-react';
 
 // Facebook App ID - you'll need to set this in your environment
 const FACEBOOK_APP_ID = process.env.REACT_APP_FACEBOOK_APP_ID || '';
+// Cloudflare Turnstile Site Key - for bot protection
+const TURNSTILE_SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || '';
 
 const Login = () => {
   const [loginUsername, setLoginUsername] = useState('');
