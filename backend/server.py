@@ -393,26 +393,96 @@ async def register(user_data: UserCreate):
     if len(user_data.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
+    # Check if this is the first user - make them admin
+    user_count = await db.users.count_documents({})
+    role = "admin" if user_count == 0 else "viewer"
+    
     user_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    
+    # Generate email verification code
+    verification_code = str(uuid.uuid4())[:6].upper()
+    
+    display_name = user_data.display_name or f"{user_data.first_name} {user_data.last_name}"
+    
     user_doc = {
         "id": user_id,
         "username": user_data.username,
         "email": user_data.email,
-        "display_name": user_data.display_name or user_data.username,
+        "first_name": user_data.first_name,
+        "last_name": user_data.last_name,
+        "phone_number": user_data.phone_number,
+        "display_name": display_name,
         "password_hash": hash_password(user_data.password),
-        "role": "viewer",  # New users start as viewers
+        "role": role,
+        "email_verified": False,
+        "verification_code": verification_code,
         "created_at": now
     }
     await db.users.insert_one(user_doc)
+    
+    # Log verification code (in production, send via email)
+    logger.info(f"Email verification code for {user_data.email}: {verification_code}")
     
     token = create_access_token({"sub": user_id})
     return TokenResponse(
         access_token=token,
         token_type="bearer",
-        user=UserResponse(id=user_id, username=user_data.username, email=user_data.email, 
-                         display_name=user_doc["display_name"], role="viewer", created_at=now)
+        user=UserResponse(
+            id=user_id, 
+            username=user_data.username, 
+            email=user_data.email,
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            phone_number=user_data.phone_number,
+            display_name=display_name, 
+            role=role, 
+            email_verified=False,
+            created_at=now
+        )
     )
+
+class EmailVerification(BaseModel):
+    code: str
+
+@api_router.post("/auth/verify-email")
+async def verify_email(verification: EmailVerification, current_user: dict = Depends(require_auth)):
+    """Verify user's email with the verification code"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    
+    if user.get("email_verified"):
+        return {"message": "Email already verified"}
+    
+    if user.get("verification_code") != verification.code.upper():
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+    
+    await db.users.update_one(
+        {"id": current_user["id"]}, 
+        {"$set": {"email_verified": True}, "$unset": {"verification_code": ""}}
+    )
+    
+    return {"message": "Email verified successfully"}
+
+@api_router.post("/auth/resend-verification")
+async def resend_verification(current_user: dict = Depends(require_auth)):
+    """Resend email verification code"""
+    user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    
+    if user.get("email_verified"):
+        return {"message": "Email already verified"}
+    
+    # Generate new verification code
+    verification_code = str(uuid.uuid4())[:6].upper()
+    
+    await db.users.update_one(
+        {"id": current_user["id"]}, 
+        {"$set": {"verification_code": verification_code}}
+    )
+    
+    # Log verification code (in production, send via email)
+    logger.info(f"New email verification code for {user['email']}: {verification_code}")
+    
+    return {"message": "Verification code sent", "code": verification_code}  # Remove code from response in production
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
