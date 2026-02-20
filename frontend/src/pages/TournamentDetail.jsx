@@ -1091,14 +1091,24 @@ const TournamentDetail = () => {
                             <div className="flex items-center justify-between">
                               <span className="font-medium">{resource.label}</span>
                               {isAdmin && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteResource(resource.id)}
-                                  className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditResource(resource)}
+                                    className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteResource(resource.id)}
+                                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               )}
                             </div>
                             <Badge variant="outline" className="mt-2 text-xs">
