@@ -115,6 +115,7 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - `/api/tournaments/{id}/divisions` - Division CRUD
 - `/api/tournaments/{id}/players?division_id={id}` - Filter players by division
 - `/api/tournaments/{id}/players/csv/upload?division_id={id}` - CSV import with default division
+- `/api/leaderboard/{sport}` - Sport-specific leaderboard rankings (added Feb 2025)
 
 ### Database Schema Updates
 - **players** collection: Added `division_id` field
