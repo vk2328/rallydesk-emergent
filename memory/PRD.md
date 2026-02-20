@@ -131,7 +131,14 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 ## Bug Fixes & Enhancements (Feb 2025)
 - **Leaderboard API Missing**: Added `/api/leaderboard/{sport}` endpoint. The frontend page existed but backend API was missing, causing "Failed to fetch leaderboard" error.
 - **Division Selection for Competitions**: Added division dropdown to the "Create Competition" dialog, allowing competitions to be linked to specific divisions (e.g., Men's Open, Women's, U18). Division name badge now shows on competition cards.
+- **CORS Fix**: Moved CORS middleware to proper position in FastAPI app for production deployment.
+- **First User Admin**: First registered user now automatically gets Admin role.
+- **Enhanced Registration**: Added First Name, Last Name, Phone Number fields to registration.
+- **Email Verification**: Added email verification step after registration with 6-digit code.
+- **Dashboard Sports Cards**: Added all 5 supported sports (Table Tennis, Badminton, Volleyball, Tennis, Pickleball) to dashboard.
+- **Theme Contrast Fix**: Improved button contrast in navigation for both dark and light themes.
 
 ## Project Health
 Application is stable. All division features tested and working as of Dec 2024.
 Leaderboard bug fixed Feb 2025.
+Enhanced registration and admin role assignment Feb 2025.
