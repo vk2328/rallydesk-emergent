@@ -366,8 +366,10 @@ class MatchResponse(BaseModel):
     scheduled_time: Optional[str] = None
     status: str
     scores: List[dict] = []
+    score_status: str = "pending"  # pending, confirmed, disputed
     bracket_position: Optional[str] = None
     next_match_id: Optional[str] = None
+    referee_access: Optional[dict] = None  # Contains access info if generated
     created_at: str
 
 # Standings Models
