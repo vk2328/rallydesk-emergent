@@ -782,7 +782,7 @@ async def upload_players_csv(
                         "id": new_division_id,
                         "tournament_id": tournament_id,
                         "name": division_name,
-                        "description": f"Auto-created from CSV import",
+                        "description": "Auto-created from CSV import",
                         "eligibility": None,
                         "created_at": now
                     }
