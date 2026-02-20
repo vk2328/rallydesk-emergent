@@ -14,12 +14,12 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('arena_token'));
+  const [token, setToken] = useState(localStorage.getItem('rallydesk_token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
-      const savedToken = localStorage.getItem('arena_token');
+      const savedToken = localStorage.getItem('rallydesk_token');
       if (savedToken) {
         try {
           const response = await axios.get(`${API_URL}/auth/me`, {
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
           setUser(response.data);
           setToken(savedToken);
         } catch (error) {
-          localStorage.removeItem('arena_token');
+          localStorage.removeItem('rallydesk_token');
           setToken(null);
           setUser(null);
         }
@@ -38,26 +38,26 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email, password) => {
-    const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+  const login = async (username, password) => {
+    const response = await axios.post(`${API_URL}/auth/login`, { username, password });
     const { access_token, user: userData } = response.data;
-    localStorage.setItem('arena_token', access_token);
+    localStorage.setItem('rallydesk_token', access_token);
     setToken(access_token);
     setUser(userData);
     return userData;
   };
 
-  const register = async (email, password, name) => {
-    const response = await axios.post(`${API_URL}/auth/register`, { email, password, name });
+  const register = async (username, email, password, display_name) => {
+    const response = await axios.post(`${API_URL}/auth/register`, { username, email, password, display_name });
     const { access_token, user: userData } = response.data;
-    localStorage.setItem('arena_token', access_token);
+    localStorage.setItem('rallydesk_token', access_token);
     setToken(access_token);
     setUser(userData);
     return userData;
   };
 
   const logout = () => {
-    localStorage.removeItem('arena_token');
+    localStorage.removeItem('rallydesk_token');
     setToken(null);
     setUser(null);
   };
@@ -66,8 +66,13 @@ export const AuthProvider = ({ children }) => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  const isAdmin = () => user?.role === 'admin';
+  const isScorekeeper = () => user?.role === 'scorekeeper' || user?.role === 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading, getAuthHeader }}>
+    <AuthContext.Provider value={{ 
+      user, token, login, register, logout, loading, getAuthHeader, isAdmin, isScorekeeper 
+    }}>
       {children}
     </AuthContext.Provider>
   );
