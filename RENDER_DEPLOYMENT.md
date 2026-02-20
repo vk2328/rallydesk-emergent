@@ -249,6 +249,9 @@ MJ_APIKEY_PUBLIC=your-mailjet-public-key
 MJ_APIKEY_PRIVATE=your-mailjet-private-key
 MJ_FROM_EMAIL=noreply@yourdomain.com
 EMAIL_FROM_NAME=Rally Desk
+
+# Cloudflare Turnstile Bot Protection (optional but recommended)
+TURNSTILE_SECRET_KEY=your-turnstile-secret-key
 ```
 
 ### Frontend (.env)
@@ -258,6 +261,9 @@ REACT_APP_BACKEND_URL=https://rallydesk-api.onrender.com
 
 # Facebook OAuth (optional)
 REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
+
+# Cloudflare Turnstile Bot Protection (optional but recommended)
+REACT_APP_TURNSTILE_SITE_KEY=your-turnstile-site-key
 ```
 
 ---
