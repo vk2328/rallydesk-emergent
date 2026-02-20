@@ -77,6 +77,22 @@ const Layout = ({ children }) => {
 
             {/* Right side */}
             <div className="flex items-center gap-2">
+              {/* Theme Toggle */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleTheme}
+                data-testid="theme-toggle-btn"
+                className="transition-colors"
+                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDark ? (
+                  <Sun className="w-5 h-5 text-yellow-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-slate-700" />
+                )}
+              </Button>
+
               {/* Leaderboards Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
