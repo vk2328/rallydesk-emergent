@@ -66,7 +66,12 @@ function AppRoutes() {
       <Route path="/tournaments" element={<ProtectedRoute><Tournaments /></ProtectedRoute>} />
       <Route path="/tournaments/new" element={<ProtectedRoute><TournamentCreate /></ProtectedRoute>} />
       <Route path="/tournaments/:id" element={<ProtectedRoute><TournamentDetail /></ProtectedRoute>} />
-      <Route path="/matches/:matchId" element={<ProtectedRoute><MatchScoreboard /></ProtectedRoute>} />
+      <Route path="/tournaments/:tournamentId/competitions/:competitionId" element={<ProtectedRoute><CompetitionDetail /></ProtectedRoute>} />
+      <Route path="/tournaments/:tournamentId/matches/:matchId" element={<ProtectedRoute><MatchScoreboard /></ProtectedRoute>} />
+      <Route path="/tournaments/:tournamentId/control-desk" element={<ProtectedRoute><ControlDesk /></ProtectedRoute>} />
+      <Route path="/tournaments/:tournamentId/standings" element={<ProtectedRoute><Standings /></ProtectedRoute>} />
+      <Route path="/tournaments/:tournamentId/import-players" element={<ProtectedRoute><PlayerImport /></ProtectedRoute>} />
+      <Route path="/tournaments/:tournamentId/board" element={<PublicBoard />} />
       <Route path="/leaderboard/:sport" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
