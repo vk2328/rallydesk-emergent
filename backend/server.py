@@ -321,6 +321,12 @@ class SetScore(BaseModel):
     score1: int
     score2: int
 
+class RefereeAccess(BaseModel):
+    """Access credentials for referee/umpire to update match scores"""
+    access_code: str  # 6-digit OTP
+    expires_at: str
+    referee_name: Optional[str] = None
+
 class MatchCreate(BaseModel):
     competition_id: str
     round_number: int
@@ -335,6 +341,13 @@ class MatchUpdate(BaseModel):
     winner_id: Optional[str] = None
     resource_id: Optional[str] = None
     scheduled_time: Optional[str] = None
+
+class RefereeScoreUpdate(BaseModel):
+    """Score update from referee - requires access code"""
+    access_code: str
+    scores: List[SetScore]
+    winner_id: Optional[str] = None
+    notes: Optional[str] = None
 
 class MatchResponse(BaseModel):
     id: str
