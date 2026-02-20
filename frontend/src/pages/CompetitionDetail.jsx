@@ -410,6 +410,16 @@ const CompetitionDetail = () => {
                   </Button>
                 </>
               )}
+              {matches.length > 0 && (
+                <Button 
+                  variant="outline"
+                  onClick={handleDownloadScoreSheet}
+                  data-testid="download-scoresheet-btn"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Score Sheet PDF
+                </Button>
+              )}
             </div>
           )}
         </div>
