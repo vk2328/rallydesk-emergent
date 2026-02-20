@@ -68,6 +68,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/live" element={<LiveMatchCenter />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/players" element={<ProtectedRoute><Players /></ProtectedRoute>} />
       <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
@@ -82,8 +83,8 @@ function AppRoutes() {
       <Route path="/tournaments/:tournamentId/import-players" element={<ProtectedRoute><PlayerImport /></ProtectedRoute>} />
       <Route path="/tournaments/:tournamentId/board" element={<PublicBoard />} />
       <Route path="/leaderboard/:sport" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/live" replace />} />
+      <Route path="*" element={<Navigate to="/live" replace />} />
     </Routes>
   );
 }
