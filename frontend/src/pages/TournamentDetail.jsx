@@ -202,6 +202,37 @@ const TournamentDetail = () => {
               )}
             </div>
           </div>
+          
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/tournaments/${id}/control-desk`)}
+              data-testid="control-desk-btn"
+            >
+              <Monitor className="w-4 h-4 mr-2" />
+              Control Desk
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/tournaments/${id}/standings`)}
+              data-testid="standings-btn"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Standings
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.open(`/tournaments/${id}/board`, '_blank')}
+              data-testid="public-board-btn"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Public Board
+            </Button>
+          </div>
         </div>
       </div>
 
