@@ -1925,6 +1925,135 @@ async def get_dashboard_stats(current_user: dict = Depends(require_auth)):
         "recent_tournaments": recent_tournaments
     }
 
+# ============== LIVE MATCH CENTER (PUBLIC) ==============
+
+@api_router.get("/live-match-center")
+async def get_live_match_center():
+    """Get live match center data across all tournaments - no auth required"""
+    from datetime import datetime, timedelta
+    
+    # Get all live matches
+    live_matches_raw = await db.matches.find(
+        {"status": "live"},
+        {"_id": 0}
+    ).to_list(50)
+    
+    live_matches = []
+    for match in live_matches_raw:
+        # Get tournament info
+        tournament = await db.tournaments.find_one({"id": match.get("tournament_id")}, {"_id": 0, "name": 1, "id": 1})
+        # Get competition info
+        competition = await db.competitions.find_one({"id": match.get("competition_id")}, {"_id": 0, "name": 1, "sport": 1})
+        # Get resource info
+        resource = await db.resources.find_one({"id": match.get("resource_id")}, {"_id": 0, "label": 1})
+        # Get participant names
+        p1 = await db.players.find_one({"id": match.get("participant1_id")}, {"_id": 0})
+        p2 = await db.players.find_one({"id": match.get("participant2_id")}, {"_id": 0})
+        
+        # Calculate sets won
+        scores = match.get("scores", [])
+        p1_sets = sum(1 for s in scores if s.get("score1", 0) > s.get("score2", 0))
+        p2_sets = sum(1 for s in scores if s.get("score2", 0) > s.get("score1", 0))
+        
+        # Get current set score if exists
+        current_score = None
+        if scores:
+            last_set = scores[-1]
+            current_score = {"p1": last_set.get("score1", 0), "p2": last_set.get("score2", 0)}
+        
+        live_matches.append({
+            "match_id": match["id"],
+            "tournament_id": match.get("tournament_id"),
+            "tournament_name": tournament.get("name") if tournament else "Unknown",
+            "competition_name": competition.get("name") if competition else "Unknown",
+            "sport": competition.get("sport") if competition else "table_tennis",
+            "resource_label": resource.get("label") if resource else "Unknown",
+            "participant1_name": f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip() if p1 else "TBD",
+            "participant2_name": f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip() if p2 else "TBD",
+            "p1_sets": p1_sets,
+            "p2_sets": p2_sets,
+            "current_score": current_score,
+            "round_number": match.get("round_number", 1)
+        })
+    
+    # Get recent completed matches (last 24 hours)
+    today = datetime.now(timezone.utc)
+    recent_results_raw = await db.matches.find(
+        {"status": "completed"},
+        {"_id": 0}
+    ).sort("completed_at", -1).to_list(20)
+    
+    recent_results = []
+    for match in recent_results_raw:
+        tournament = await db.tournaments.find_one({"id": match.get("tournament_id")}, {"_id": 0, "name": 1})
+        competition = await db.competitions.find_one({"id": match.get("competition_id")}, {"_id": 0, "sport": 1})
+        p1 = await db.players.find_one({"id": match.get("participant1_id")}, {"_id": 0})
+        p2 = await db.players.find_one({"id": match.get("participant2_id")}, {"_id": 0})
+        
+        scores = match.get("scores", [])
+        p1_sets = sum(1 for s in scores if s.get("score1", 0) > s.get("score2", 0))
+        p2_sets = sum(1 for s in scores if s.get("score2", 0) > s.get("score1", 0))
+        
+        recent_results.append({
+            "tournament_name": tournament.get("name") if tournament else "Unknown",
+            "sport": competition.get("sport") if competition else "table_tennis",
+            "participant1_name": f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip() if p1 else "Unknown",
+            "participant2_name": f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip() if p2 else "Unknown",
+            "participant1_id": match.get("participant1_id"),
+            "participant2_id": match.get("participant2_id"),
+            "winner_id": match.get("winner_id"),
+            "p1_sets": p1_sets,
+            "p2_sets": p2_sets
+        })
+    
+    # Get upcoming matches (pending with both participants assigned)
+    upcoming_raw = await db.matches.find(
+        {
+            "status": "pending",
+            "participant1_id": {"$ne": None},
+            "participant2_id": {"$ne": None}
+        },
+        {"_id": 0}
+    ).limit(20).to_list(20)
+    
+    upcoming_matches = []
+    for match in upcoming_raw:
+        tournament = await db.tournaments.find_one({"id": match.get("tournament_id")}, {"_id": 0, "name": 1})
+        competition = await db.competitions.find_one({"id": match.get("competition_id")}, {"_id": 0, "name": 1, "sport": 1})
+        p1 = await db.players.find_one({"id": match.get("participant1_id")}, {"_id": 0})
+        p2 = await db.players.find_one({"id": match.get("participant2_id")}, {"_id": 0})
+        
+        upcoming_matches.append({
+            "tournament_name": tournament.get("name") if tournament else "Unknown",
+            "competition_name": competition.get("name") if competition else "Unknown",
+            "sport": competition.get("sport") if competition else "table_tennis",
+            "participant1_name": f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip() if p1 else "TBD",
+            "participant2_name": f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip() if p2 else "TBD",
+            "round_number": match.get("round_number", 1)
+        })
+    
+    # Stats
+    total_live = len(live_matches)
+    total_completed = await db.matches.count_documents({"status": "completed"})
+    total_pending = await db.matches.count_documents({
+        "status": "pending",
+        "participant1_id": {"$ne": None},
+        "participant2_id": {"$ne": None}
+    })
+    active_tournaments = await db.tournaments.count_documents({"status": {"$in": ["in_progress", "draw_generated"]}})
+    
+    return {
+        "live_matches": live_matches,
+        "recent_results": recent_results,
+        "upcoming_matches": upcoming_matches,
+        "stats": {
+            "live": total_live,
+            "completed": total_completed,
+            "pending": total_pending,
+            "tournaments": active_tournaments
+        }
+    }
+
 # ============== PUBLIC BOARD ==============
 
 @api_router.get("/tournaments/{tournament_id}/public-board")
