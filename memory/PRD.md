@@ -128,8 +128,9 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - `/app/test_reports/iteration_2.json`
 - `/app/test_reports/iteration_3.json` - Division & CSV import tests (100% pass rate)
 
-## Bug Fixes (Feb 2025)
+## Bug Fixes & Enhancements (Feb 2025)
 - **Leaderboard API Missing**: Added `/api/leaderboard/{sport}` endpoint. The frontend page existed but backend API was missing, causing "Failed to fetch leaderboard" error.
+- **Division Selection for Competitions**: Added division dropdown to the "Create Competition" dialog, allowing competitions to be linked to specific divisions (e.g., Men's Open, Women's, U18). Division name badge now shows on competition cards.
 
 ## Project Health
 Application is stable. All division features tested and working as of Dec 2024.
