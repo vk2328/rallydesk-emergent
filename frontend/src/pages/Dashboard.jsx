@@ -56,7 +56,7 @@ const Dashboard = () => {
             Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Welcome to The Arena - Your Tournament Control Center
+            Welcome to RallyDesk - Your Tournament Control Center
           </p>
         </div>
         <Link to="/tournaments/new">

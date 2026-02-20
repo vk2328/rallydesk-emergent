@@ -68,10 +68,10 @@ const Login = () => {
             </div>
           </div>
           <h1 className="font-heading text-5xl font-black tracking-tighter uppercase text-white">
-            THE ARENA
+            RALLYDESK
           </h1>
           <p className="text-muted-foreground mt-2">
-            Tournament Management System
+            Sports Tournament Management
           </p>
         </div>
 

@@ -46,7 +46,7 @@ const Layout = ({ children }) => {
                 <Trophy className="w-8 h-8 text-primary" />
               </div>
               <span className="font-heading text-xl font-bold uppercase tracking-tight hidden md:inline">
-                The Arena
+                RallyDesk
               </span>
             </Link>
 

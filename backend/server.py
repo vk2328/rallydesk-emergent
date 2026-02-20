@@ -34,7 +34,7 @@ ACCESS_TOKEN_EXPIRE_HOURS = 24
 security = HTTPBearer()
 
 # Create the main app
-app = FastAPI(title="The Arena - Sports Tournament Management")
+app = FastAPI(title="RallyDesk - Sports Tournament Management")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -1096,7 +1096,7 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/")
 async def root():
-    return {"message": "The Arena - Sports Tournament Management API"}
+    return {"message": "RallyDesk - Sports Tournament Management API"}
 
 # Include the router
 app.include_router(api_router)
