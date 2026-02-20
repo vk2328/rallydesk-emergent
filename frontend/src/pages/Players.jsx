@@ -99,6 +99,71 @@ const Players = () => {
     }
   };
 
+  const handleDownloadSample = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/players/csv/sample`, {
+        headers: getAuthHeader(),
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'players_sample.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Sample CSV downloaded');
+    } catch (error) {
+      toast.error('Failed to download sample CSV');
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+    
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await axios.post(`${API_URL}/players/csv/upload`, formData, {
+        headers: {
+          ...getAuthHeader(),
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      const { created, skipped, errors } = response.data;
+      
+      if (created > 0) {
+        toast.success(`Successfully imported ${created} player(s)`);
+      }
+      if (skipped > 0) {
+        toast.warning(`${skipped} row(s) skipped`);
+      }
+      if (errors && errors.length > 0) {
+        errors.slice(0, 3).forEach(err => toast.error(err));
+      }
+      
+      setIsUploadDialogOpen(false);
+      fetchPlayers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to upload CSV');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const filteredPlayers = players.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (player.email && player.email.toLowerCase().includes(searchTerm.toLowerCase()));
