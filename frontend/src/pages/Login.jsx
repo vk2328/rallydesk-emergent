@@ -232,10 +232,30 @@ const Login = () => {
                       className="bg-background/50"
                     />
                   </div>
+                  
+                  {/* Cloudflare Turnstile Bot Protection */}
+                  {TURNSTILE_SITE_KEY && (
+                    <div className="flex justify-center" data-testid="login-turnstile">
+                      <Turnstile
+                        ref={loginTurnstileRef}
+                        sitekey={TURNSTILE_SITE_KEY}
+                        onVerify={(token) => setLoginTurnstileToken(token)}
+                        onError={() => {
+                          toast.error('Security verification failed. Please try again.');
+                          setLoginTurnstileToken('');
+                        }}
+                        onExpire={() => {
+                          setLoginTurnstileToken('');
+                        }}
+                        theme="dark"
+                      />
+                    </div>
+                  )}
+                  
                   <Button 
                     type="submit" 
                     className="w-full font-bold uppercase tracking-wider"
-                    disabled={loading}
+                    disabled={loading || (TURNSTILE_SITE_KEY && !loginTurnstileToken)}
                     data-testid="login-submit"
                   >
                     {loading ? 'Signing in...' : 'Sign In'}
