@@ -494,15 +494,33 @@ async def login(credentials: UserLogin):
     return TokenResponse(
         access_token=token,
         token_type="bearer",
-        user=UserResponse(id=user["id"], username=user["username"], email=user["email"],
-                         display_name=user.get("display_name"), role=user["role"], created_at=user["created_at"])
+        user=UserResponse(
+            id=user["id"], 
+            username=user["username"], 
+            email=user["email"],
+            first_name=user.get("first_name"),
+            last_name=user.get("last_name"),
+            phone_number=user.get("phone_number"),
+            display_name=user.get("display_name"), 
+            role=user["role"], 
+            email_verified=user.get("email_verified", False),
+            created_at=user["created_at"]
+        )
     )
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(require_auth)):
     return UserResponse(
-        id=current_user["id"], username=current_user["username"], email=current_user["email"],
-        display_name=current_user.get("display_name"), role=current_user["role"], created_at=current_user["created_at"]
+        id=current_user["id"], 
+        username=current_user["username"], 
+        email=current_user["email"],
+        first_name=current_user.get("first_name"),
+        last_name=current_user.get("last_name"),
+        phone_number=current_user.get("phone_number"),
+        display_name=current_user.get("display_name"), 
+        role=current_user["role"], 
+        email_verified=current_user.get("email_verified", False),
+        created_at=current_user["created_at"]
     )
 
 @api_router.put("/auth/profile")
