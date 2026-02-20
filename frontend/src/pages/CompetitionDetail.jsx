@@ -33,6 +33,14 @@ const CompetitionDetail = () => {
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [generating, setGenerating] = useState(false);
+  
+  // Draw management state
+  const [isDrawOptionsOpen, setIsDrawOptionsOpen] = useState(false);
+  const [seedingOption, setSeedingOption] = useState('random');
+  const [manualSeedOrder, setManualSeedOrder] = useState([]);
+  const [isEditBracketMode, setIsEditBracketMode] = useState(false);
+  const [selectedMatchForSwap, setSelectedMatchForSwap] = useState(null);
+  const [bracketData, setBracketData] = useState(null);
 
   const isAdmin = user?.role === 'admin';
 
