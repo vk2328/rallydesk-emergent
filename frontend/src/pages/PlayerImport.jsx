@@ -221,10 +221,10 @@ Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Wome
 
       {/* Result */}
       {result && (
-        <Card className={`border ${result.imported > 0 ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+        <Card className={`border ${result.created > 0 ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              {result.imported > 0 ? (
+              {result.created > 0 ? (
                 <CheckCircle className="w-8 h-8 text-green-500" />
               ) : (
                 <AlertCircle className="w-8 h-8 text-red-500" />
@@ -232,12 +232,33 @@ Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Wome
               <div>
                 <h3 className="font-heading text-lg uppercase">Import Result</h3>
                 <p className="text-muted-foreground">
-                  {result.imported > 0 
-                    ? `Successfully imported ${result.imported} players` 
+                  {result.created > 0 
+                    ? `Successfully imported ${result.created} players` 
                     : 'Import failed'}
                 </p>
               </div>
             </div>
+
+            {/* Stats */}
+            {result.created > 0 && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="p-3 bg-muted/30 rounded-lg text-center">
+                  <Users className="w-5 h-5 mx-auto mb-1 text-primary" />
+                  <p className="text-2xl font-bold">{result.created}</p>
+                  <p className="text-xs text-muted-foreground">Players</p>
+                </div>
+                <div className="p-3 bg-muted/30 rounded-lg text-center">
+                  <Users className="w-5 h-5 mx-auto mb-1 text-blue-400" />
+                  <p className="text-2xl font-bold">{result.teams_created || 0}</p>
+                  <p className="text-xs text-muted-foreground">Teams Created</p>
+                </div>
+                <div className="p-3 bg-muted/30 rounded-lg text-center">
+                  <Layers className="w-5 h-5 mx-auto mb-1 text-purple-400" />
+                  <p className="text-2xl font-bold">{result.divisions_created || 0}</p>
+                  <p className="text-xs text-muted-foreground">Divisions Created</p>
+                </div>
+              </div>
+            )}
 
             {result.errors?.length > 0 && (
               <div className="mt-4 p-4 bg-red-500/10 rounded-lg">
@@ -250,7 +271,7 @@ Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Wome
               </div>
             )}
 
-            {result.imported > 0 && (
+            {result.created > 0 && (
               <Button 
                 variant="outline" 
                 onClick={() => navigate(`/tournaments/${tournamentId}`)}
