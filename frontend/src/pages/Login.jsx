@@ -76,7 +76,6 @@ const Login = () => {
       setFacebookLoading(false);
     }, { scope: 'public_profile,email' });
   };
-  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
