@@ -692,7 +692,7 @@ async def bulk_add_resources(tournament_id: str, sport: str, count: int, current
     require_admin(current_user)
     
     if sport not in SPORTS:
-        raise HTTPException(status_code=400, detail=f"Invalid sport")
+        raise HTTPException(status_code=400, detail="Invalid sport")
     
     now = datetime.now(timezone.utc).isoformat()
     sport_name = sport.replace('_', ' ').title()
@@ -943,9 +943,9 @@ async def create_competition(tournament_id: str, competition: CompetitionCreate,
     require_admin(current_user)
     
     if competition.sport not in SPORTS:
-        raise HTTPException(status_code=400, detail=f"Invalid sport")
+        raise HTTPException(status_code=400, detail="Invalid sport")
     if competition.format not in FORMATS:
-        raise HTTPException(status_code=400, detail=f"Invalid format")
+        raise HTTPException(status_code=400, detail="Invalid format")
     
     competition_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
