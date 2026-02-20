@@ -354,6 +354,7 @@ const Players = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
