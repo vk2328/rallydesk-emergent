@@ -40,6 +40,32 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ============== HEALTH CHECK ==============
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    return {"status": "healthy", "service": "RallyDesk API"}
+
+@app.get("/api/health")
+async def api_health_check():
+    """API health check with database connectivity test"""
+    try:
+        # Test database connection
+        await db.command("ping")
+        return {
+            "status": "healthy",
+            "service": "RallyDesk API",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "service": "RallyDesk API",
+            "database": "disconnected",
+            "error": str(e)
+        }
+
 # ============== ENUMS ==============
 
 SPORTS = ["table_tennis", "badminton", "volleyball", "tennis", "pickleball"]
