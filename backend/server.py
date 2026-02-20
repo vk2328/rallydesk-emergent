@@ -633,11 +633,14 @@ async def get_tournament_participants(tournament_id: str, current_user: dict = D
     
     if match_type == "singles":
         participants = await db.players.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(100)
+        # Format player names
+        for p in participants:
+            p["name"] = f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
     else:
         participants = await db.teams.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(100)
         for p in participants:
-            players = await db.players.find({"id": {"$in": p.get("player_ids", [])}}, {"_id": 0, "name": 1, "id": 1}).to_list(10)
-            p["players"] = players
+            players = await db.players.find({"id": {"$in": p.get("player_ids", [])}}, {"_id": 0, "first_name": 1, "last_name": 1, "id": 1}).to_list(10)
+            p["players"] = [{"id": pl["id"], "name": f"{pl.get('first_name', '')} {pl.get('last_name', '')}".strip()} for pl in players]
     
     return participants
 
