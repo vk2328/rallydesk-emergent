@@ -1295,6 +1295,312 @@ async def generate_draw(tournament_id: str, competition_id: str, current_user: d
     
     return {"message": f"Generated {len(matches)} matches", "match_count": len(matches)}
 
+# Pydantic models for draw adjustments
+class DrawOptions(BaseModel):
+    seeding: str = "random"  # random, rating, manual
+    seed_order: Optional[List[str]] = None  # For manual seeding
+
+class SwapParticipantsRequest(BaseModel):
+    match1_id: str
+    match2_id: str
+    swap_type: str = "participant1"  # participant1, participant2, or both
+
+class MoveParticipantRequest(BaseModel):
+    source_match_id: str
+    target_match_id: str
+    source_slot: str  # participant1 or participant2
+    target_slot: str  # participant1 or participant2
+
+class AdvanceWinnerRequest(BaseModel):
+    match_id: str
+    winner_id: str
+
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/generate-draw-advanced")
+async def generate_draw_advanced(
+    tournament_id: str, 
+    competition_id: str, 
+    options: DrawOptions,
+    current_user: dict = Depends(require_auth)
+):
+    """Generate draw with seeding options: random, rating-based, or manual order"""
+    require_admin(current_user)
+    
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    participant_ids = competition.get("participant_ids", [])
+    if len(participant_ids) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 participants")
+    
+    # Delete existing matches
+    await db.matches.delete_many({"competition_id": competition_id})
+    
+    # Order participants based on seeding option
+    if options.seeding == "manual" and options.seed_order:
+        # Use manual order, validate all participants are included
+        if set(options.seed_order) != set(participant_ids):
+            raise HTTPException(status_code=400, detail="Seed order must include all participants")
+        ordered_participants = options.seed_order
+    elif options.seeding == "rating":
+        # Fetch players/teams and sort by rating
+        players = await db.players.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(500)
+        teams = await db.teams.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(500)
+        all_entities = {p["id"]: p.get("rating", 0) or 0 for p in players}
+        all_entities.update({t["id"]: t.get("rating", 0) or 0 for t in teams})
+        ordered_participants = sorted(participant_ids, key=lambda x: all_entities.get(x, 0), reverse=True)
+    else:
+        # Random seeding
+        ordered_participants = participant_ids.copy()
+        random.shuffle(ordered_participants)
+    
+    format_type = competition.get("format", "round_robin")
+    num_groups = competition.get("num_groups", 1)
+    now = datetime.now(timezone.utc).isoformat()
+    
+    matches = []
+    if format_type == "round_robin":
+        matches = generate_round_robin_matches(ordered_participants, competition_id, tournament_id, now)
+    elif format_type == "single_elimination":
+        matches = generate_single_elimination_seeded(ordered_participants, competition_id, tournament_id, now)
+    elif format_type == "double_elimination":
+        matches = generate_double_elimination_matches(ordered_participants, competition_id, tournament_id, now)
+    elif format_type == "groups_knockout":
+        matches = generate_groups_knockout_seeded(ordered_participants, competition_id, tournament_id, num_groups, now)
+    
+    if matches:
+        await db.matches.insert_many(matches)
+    
+    await db.competitions.update_one({"id": competition_id}, {"$set": {"status": "draw_generated"}})
+    
+    return {
+        "message": f"Generated {len(matches)} matches with {options.seeding} seeding",
+        "match_count": len(matches),
+        "seeding": options.seeding
+    }
+
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/swap-participants")
+async def swap_participants(
+    tournament_id: str,
+    competition_id: str,
+    request: SwapParticipantsRequest,
+    current_user: dict = Depends(require_auth)
+):
+    """Swap participants between two matches for manual bracket adjustment"""
+    require_admin(current_user)
+    
+    match1 = await db.matches.find_one({"id": request.match1_id, "competition_id": competition_id}, {"_id": 0})
+    match2 = await db.matches.find_one({"id": request.match2_id, "competition_id": competition_id}, {"_id": 0})
+    
+    if not match1 or not match2:
+        raise HTTPException(status_code=404, detail="One or both matches not found")
+    
+    # Don't allow swapping in completed matches
+    if match1.get("status") == "completed" or match2.get("status") == "completed":
+        raise HTTPException(status_code=400, detail="Cannot swap participants in completed matches")
+    
+    if request.swap_type == "participant1":
+        # Swap participant1 between matches
+        await db.matches.update_one(
+            {"id": request.match1_id},
+            {"$set": {"participant1_id": match2["participant1_id"]}}
+        )
+        await db.matches.update_one(
+            {"id": request.match2_id},
+            {"$set": {"participant1_id": match1["participant1_id"]}}
+        )
+    elif request.swap_type == "participant2":
+        # Swap participant2 between matches
+        await db.matches.update_one(
+            {"id": request.match1_id},
+            {"$set": {"participant2_id": match2["participant2_id"]}}
+        )
+        await db.matches.update_one(
+            {"id": request.match2_id},
+            {"$set": {"participant2_id": match1["participant2_id"]}}
+        )
+    elif request.swap_type == "both":
+        # Swap both participants (entire match swap)
+        await db.matches.update_one(
+            {"id": request.match1_id},
+            {"$set": {
+                "participant1_id": match2["participant1_id"],
+                "participant2_id": match2["participant2_id"]
+            }}
+        )
+        await db.matches.update_one(
+            {"id": request.match2_id},
+            {"$set": {
+                "participant1_id": match1["participant1_id"],
+                "participant2_id": match1["participant2_id"]
+            }}
+        )
+    
+    return {"message": "Participants swapped successfully"}
+
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/move-participant")
+async def move_participant(
+    tournament_id: str,
+    competition_id: str,
+    request: MoveParticipantRequest,
+    current_user: dict = Depends(require_auth)
+):
+    """Move a participant from one match slot to another"""
+    require_admin(current_user)
+    
+    source_match = await db.matches.find_one({"id": request.source_match_id, "competition_id": competition_id}, {"_id": 0})
+    target_match = await db.matches.find_one({"id": request.target_match_id, "competition_id": competition_id}, {"_id": 0})
+    
+    if not source_match or not target_match:
+        raise HTTPException(status_code=404, detail="One or both matches not found")
+    
+    if source_match.get("status") == "completed":
+        raise HTTPException(status_code=400, detail="Cannot move participant from completed match")
+    
+    # Get the participant to move
+    participant_id = source_match.get(f"{request.source_slot}_id")
+    
+    # Clear source slot
+    await db.matches.update_one(
+        {"id": request.source_match_id},
+        {"$set": {f"{request.source_slot}_id": None}}
+    )
+    
+    # Set target slot
+    await db.matches.update_one(
+        {"id": request.target_match_id},
+        {"$set": {f"{request.target_slot}_id": participant_id}}
+    )
+    
+    return {"message": "Participant moved successfully"}
+
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/advance-winner")
+async def advance_winner(
+    tournament_id: str,
+    competition_id: str,
+    request: AdvanceWinnerRequest,
+    current_user: dict = Depends(require_auth)
+):
+    """Manually advance a winner to the next round match"""
+    require_admin(current_user)
+    
+    match = await db.matches.find_one({"id": request.match_id, "competition_id": competition_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    # Verify winner is one of the participants
+    if request.winner_id not in [match.get("participant1_id"), match.get("participant2_id")]:
+        raise HTTPException(status_code=400, detail="Winner must be one of the match participants")
+    
+    # Update match with winner
+    await db.matches.update_one(
+        {"id": request.match_id},
+        {"$set": {"winner_id": request.winner_id, "status": "completed"}}
+    )
+    
+    # If there's a next match, advance the winner
+    next_match_id = match.get("next_match_id")
+    if next_match_id:
+        next_match = await db.matches.find_one({"id": next_match_id}, {"_id": 0})
+        if next_match:
+            # Determine which slot to fill
+            if next_match.get("participant1_id") is None:
+                await db.matches.update_one(
+                    {"id": next_match_id},
+                    {"$set": {"participant1_id": request.winner_id}}
+                )
+            elif next_match.get("participant2_id") is None:
+                await db.matches.update_one(
+                    {"id": next_match_id},
+                    {"$set": {"participant2_id": request.winner_id}}
+                )
+    
+    return {"message": "Winner advanced", "next_match_id": next_match_id}
+
+@api_router.get("/tournaments/{tournament_id}/competitions/{competition_id}/bracket")
+async def get_bracket(
+    tournament_id: str,
+    competition_id: str,
+    current_user: dict = Depends(require_auth)
+):
+    """Get full bracket structure with rounds and matches"""
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    matches = await db.matches.find(
+        {"competition_id": competition_id}, 
+        {"_id": 0}
+    ).sort("round_number", 1).to_list(500)
+    
+    # Get participant details
+    participant_ids = set()
+    for m in matches:
+        if m.get("participant1_id"):
+            participant_ids.add(m["participant1_id"])
+        if m.get("participant2_id"):
+            participant_ids.add(m["participant2_id"])
+    
+    players = await db.players.find({"id": {"$in": list(participant_ids)}}, {"_id": 0}).to_list(500)
+    teams = await db.teams.find({"id": {"$in": list(participant_ids)}}, {"_id": 0}).to_list(500)
+    
+    participant_map = {}
+    for p in players:
+        participant_map[p["id"]] = {"id": p["id"], "name": f"{p.get('first_name', '')} {p.get('last_name', '')}".strip(), "type": "player"}
+    for t in teams:
+        participant_map[t["id"]] = {"id": t["id"], "name": t.get("name", ""), "type": "team"}
+    
+    # Structure by round
+    rounds = {}
+    for match in matches:
+        round_num = match.get("round_number", 1)
+        if round_num not in rounds:
+            rounds[round_num] = []
+        
+        match_data = {
+            **match,
+            "participant1": participant_map.get(match.get("participant1_id")),
+            "participant2": participant_map.get(match.get("participant2_id")),
+            "winner": participant_map.get(match.get("winner_id"))
+        }
+        rounds[round_num].append(match_data)
+    
+    # Calculate round names
+    total_rounds = len(rounds)
+    round_names = {}
+    for r in sorted(rounds.keys()):
+        if r >= 100:  # Knockout stage
+            remaining = total_rounds - (r - 100)
+            if remaining == 1:
+                round_names[r] = "Final"
+            elif remaining == 2:
+                round_names[r] = "Semi-Final"
+            elif remaining == 3:
+                round_names[r] = "Quarter-Final"
+            else:
+                round_names[r] = f"Round {r - 99}"
+        elif r == 999:
+            round_names[r] = "Grand Final"
+        else:
+            remaining = total_rounds - r + 1
+            if remaining == 1 and competition.get("format") == "single_elimination":
+                round_names[r] = "Final"
+            elif remaining == 2 and competition.get("format") == "single_elimination":
+                round_names[r] = "Semi-Final"
+            elif remaining == 3 and competition.get("format") == "single_elimination":
+                round_names[r] = "Quarter-Final"
+            else:
+                round_names[r] = f"Round {r}"
+    
+    return {
+        "competition": competition,
+        "rounds": rounds,
+        "round_names": round_names,
+        "total_matches": len(matches),
+        "completed_matches": len([m for m in matches if m.get("status") == "completed"]),
+        "participants": participant_map
+    }
+
 @api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/reset-draw")
 async def reset_draw(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
     require_admin(current_user)
