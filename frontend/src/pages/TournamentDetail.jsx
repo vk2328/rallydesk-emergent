@@ -34,13 +34,18 @@ const TournamentDetail = () => {
   const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
   const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
   const [isAddCompetitionOpen, setIsAddCompetitionOpen] = useState(false);
+  const [isAddDivisionOpen, setIsAddDivisionOpen] = useState(false);
   
   // Form states
-  const [newPlayer, setNewPlayer] = useState({ first_name: '', last_name: '', email: '', sports: [] });
+  const [newPlayer, setNewPlayer] = useState({ first_name: '', last_name: '', email: '', sports: [], division_id: '' });
   const [newResource, setNewResource] = useState({ sport: 'table_tennis', count: 1 });
   const [newCompetition, setNewCompetition] = useState({
-    name: '', sport: 'table_tennis', format: 'single_elimination', participant_type: 'single'
+    name: '', sport: 'table_tennis', format: 'single_elimination', participant_type: 'single', division_id: ''
   });
+  const [newDivision, setNewDivision] = useState({ name: '', description: '' });
+  
+  // Filter states
+  const [playerDivisionFilter, setPlayerDivisionFilter] = useState('all');
 
   const isAdmin = user?.role === 'admin';
 
