@@ -158,6 +158,38 @@ const TournamentDetail = () => {
     }
   };
 
+  const handleAddDivision = async () => {
+    try {
+      await axios.post(`${API_URL}/tournaments/${id}/divisions`, newDivision, {
+        headers: getAuthHeader()
+      });
+      toast.success('Division created');
+      setIsAddDivisionOpen(false);
+      setNewDivision({ name: '', description: '' });
+      fetchTournamentData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create division');
+    }
+  };
+
+  const handleDeleteDivision = async (divisionId) => {
+    if (!window.confirm('Are you sure you want to delete this division? Players in this division will be unassigned.')) return;
+    try {
+      // Unassign players from this division first
+      await axios.put(`${API_URL}/tournaments/${id}/divisions/${divisionId}/unassign-players`, {}, {
+        headers: getAuthHeader()
+      }).catch(() => {}); // Ignore if endpoint doesn't exist
+      
+      await axios.delete(`${API_URL}/tournaments/${id}/divisions/${divisionId}`, {
+        headers: getAuthHeader()
+      });
+      toast.success('Division deleted');
+      fetchTournamentData();
+    } catch (error) {
+      toast.error('Failed to delete division');
+    }
+  };
+
   // Group resources by sport
   const resourcesBySport = resources.reduce((acc, r) => {
     if (!acc[r.sport]) acc[r.sport] = [];
