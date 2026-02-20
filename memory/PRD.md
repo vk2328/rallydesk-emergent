@@ -133,9 +133,22 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - **Division Selection for Competitions**: Added division dropdown to "Create Competition" dialog.
 - **CORS Fix**: Moved CORS middleware to proper position for production deployment.
 - **Enhanced Registration**: Added First Name, Last Name, Phone Number fields.
-- **Email Verification**: Added email verification step with 6-digit code.
+- **Email Verification with Mailjet**: Full email verification flow implemented.
 - **Dashboard Sports Cards**: Added all 5 supported sports to dashboard.
 - **Theme Contrast Fix**: Improved button contrast for dark/light themes.
+
+## Email Verification (Feb 2025) - COMPLETE
+- **Mailjet Integration**: Professional HTML email templates for verification
+- **6-digit verification codes**: Generated on registration and resend
+- **Dashboard verification banner**: Prominent amber banner prompts unverified users
+- **Verification modal**: Clean UI for entering codes with resend option
+- **Fallback for dev**: Codes logged when Mailjet not configured
+- API endpoints:
+  - `POST /api/auth/register` - Creates user, sends verification email
+  - `POST /api/auth/verify-email` - Verifies code and updates user status
+  - `POST /api/auth/resend-verification` - Generates and sends new code
+- Backend: `/app/backend/services/email_service.py` - Mailjet email service
+- Required env vars: `MJ_APIKEY_PUBLIC`, `MJ_APIKEY_PRIVATE`, `MJ_FROM_EMAIL`, `EMAIL_FROM_NAME`
 
 ## SaaS Multi-Tenant Model (Feb 2025)
 - **Anyone can create tournaments** - no global admin required
