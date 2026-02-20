@@ -198,11 +198,39 @@ const Login = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
+                      <Label htmlFor="register-firstname">First Name *</Label>
+                      <Input
+                        id="register-firstname"
+                        type="text"
+                        placeholder="John"
+                        value={registerFirstName}
+                        onChange={(e) => setRegisterFirstName(e.target.value)}
+                        required
+                        data-testid="register-firstname"
+                        className="bg-background/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-lastname">Last Name *</Label>
+                      <Input
+                        id="register-lastname"
+                        type="text"
+                        placeholder="Doe"
+                        value={registerLastName}
+                        onChange={(e) => setRegisterLastName(e.target.value)}
+                        required
+                        data-testid="register-lastname"
+                        className="bg-background/50"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
                       <Label htmlFor="register-username">Username *</Label>
                       <Input
                         id="register-username"
                         type="text"
-                        placeholder="username"
+                        placeholder="johndoe"
                         value={registerUsername}
                         onChange={(e) => setRegisterUsername(e.target.value)}
                         required
@@ -211,14 +239,14 @@ const Login = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="register-displayname">Display Name</Label>
+                      <Label htmlFor="register-phone">Phone Number</Label>
                       <Input
-                        id="register-displayname"
-                        type="text"
-                        placeholder="Your name"
-                        value={registerDisplayName}
-                        onChange={(e) => setRegisterDisplayName(e.target.value)}
-                        data-testid="register-displayname"
+                        id="register-phone"
+                        type="tel"
+                        placeholder="+1 (555) 000-0000"
+                        value={registerPhone}
+                        onChange={(e) => setRegisterPhone(e.target.value)}
+                        data-testid="register-phone"
                         className="bg-background/50"
                       />
                     </div>
@@ -228,7 +256,7 @@ const Login = () => {
                     <Input
                       id="register-email"
                       type="email"
-                      placeholder="you@example.com"
+                      placeholder="john@example.com"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       required
@@ -259,7 +287,7 @@ const Login = () => {
                     {loading ? 'Creating Account...' : 'Create Account'}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
-                    New accounts start with Viewer role
+                    First user gets Admin role. Others start as Viewer.
                   </p>
                 </CardContent>
               </form>
