@@ -86,9 +86,16 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // Check Turnstile token if enabled
+    if (TURNSTILE_SITE_KEY && !loginTurnstileToken) {
+      toast.error('Please complete the security verification');
+      return;
+    }
+    
     setLoading(true);
     try {
-      const response = await login(loginUsername, loginPassword);
+      const response = await login(loginUsername, loginPassword, loginTurnstileToken);
       toast.success('Welcome back!');
       if (!response.user.email_verified) {
         setShowVerification(true);
@@ -97,6 +104,11 @@ const Login = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed');
+      // Reset turnstile on error
+      if (loginTurnstileRef.current) {
+        loginTurnstileRef.current.reset();
+        setLoginTurnstileToken('');
+      }
     } finally {
       setLoading(false);
     }
@@ -104,13 +116,25 @@ const Login = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    
+    // Check Turnstile token if enabled
+    if (TURNSTILE_SITE_KEY && !registerTurnstileToken) {
+      toast.error('Please complete the security verification');
+      return;
+    }
+    
     setLoading(true);
     try {
-      await register(registerUsername, registerEmail, registerPassword, registerFirstName, registerLastName, registerPhone);
+      await register(registerUsername, registerEmail, registerPassword, registerFirstName, registerLastName, registerPhone, registerTurnstileToken);
       toast.success('Account created! Please verify your email.');
       setShowVerification(true);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Registration failed');
+      // Reset turnstile on error
+      if (registerTurnstileRef.current) {
+        registerTurnstileRef.current.reset();
+        setRegisterTurnstileToken('');
+      }
     } finally {
       setLoading(false);
     }
