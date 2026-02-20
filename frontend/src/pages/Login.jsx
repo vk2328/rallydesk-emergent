@@ -26,7 +26,56 @@ const Login = () => {
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [resending, setResending] = useState(false);
-  const { login, register, verifyEmail, resendVerification } = useAuth();
+  const [facebookLoading, setFacebookLoading] = useState(false);
+  const { login, register, verifyEmail, resendVerification, loginWithFacebook } = useAuth();
+  const navigate = useNavigate();
+
+  // Initialize Facebook SDK
+  useEffect(() => {
+    if (FACEBOOK_APP_ID && !window.FB) {
+      window.fbAsyncInit = function() {
+        window.FB.init({
+          appId: FACEBOOK_APP_ID,
+          cookie: true,
+          xfbml: true,
+          version: 'v19.0'
+        });
+      };
+
+      // Load Facebook SDK
+      (function(d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = "https://connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+      }(document, 'script', 'facebook-jssdk'));
+    }
+  }, []);
+
+  const handleFacebookLogin = () => {
+    if (!FACEBOOK_APP_ID) {
+      toast.error('Facebook login is not configured');
+      return;
+    }
+
+    setFacebookLoading(true);
+    
+    window.FB.login(async (response) => {
+      if (response.authResponse) {
+        try {
+          await loginWithFacebook(response.authResponse.accessToken);
+          toast.success('Welcome to RallyDesk!');
+          navigate('/dashboard');
+        } catch (error) {
+          toast.error(error.response?.data?.detail || 'Facebook login failed');
+        }
+      } else {
+        toast.error('Facebook login was cancelled');
+      }
+      setFacebookLoading(false);
+    }, { scope: 'public_profile,email' });
+  };
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
