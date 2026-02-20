@@ -16,7 +16,8 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, Calendar, MapPin, Users, Trophy, Play, 
-  Plus, Settings, Grid3X3, ChevronRight, Trash2, Upload, BarChart3, Monitor, ExternalLink, Layers, Edit
+  Plus, Settings, Grid3X3, ChevronRight, Trash2, Upload, BarChart3, Monitor, ExternalLink, Layers, Edit,
+  UserPlus, UserMinus, Search, Shield, Crown
 } from 'lucide-react';
 
 const TournamentDetail = () => {
