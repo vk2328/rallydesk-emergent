@@ -355,6 +355,27 @@ const Login = () => {
                   Skip for now
                 </Button>
               </div>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <span className="text-sm text-muted-foreground">Didn't receive the code?</span>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  size="sm"
+                  className="p-0 h-auto"
+                  onClick={handleResendCode}
+                  disabled={resending}
+                  data-testid="resend-code-btn"
+                >
+                  {resending ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Resend Code'
+                  )}
+                </Button>
+              </div>
               <p className="text-xs text-center text-muted-foreground">
                 Check your spam folder if you don't see the email.
               </p>
