@@ -133,7 +133,7 @@ Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Wome
               <div>
                 <p className="font-medium">players_template.csv</p>
                 <p className="text-sm text-muted-foreground">
-                  Columns: first_name, last_name, email, skill_level
+                  Includes: name, email, team, division, sports, and more
                 </p>
               </div>
             </div>
@@ -144,6 +144,34 @@ Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Wome
           </div>
         </CardContent>
       </Card>
+
+      {/* Division Selection */}
+      {divisions.length > 0 && (
+        <Card className="bg-card border-border/40 mb-6">
+          <CardHeader>
+            <CardTitle className="font-heading uppercase text-lg">Default Division</CardTitle>
+            <CardDescription>
+              Assign all imported players to a division (can be overridden in CSV with 'division' column)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Layers className="w-5 h-5 text-muted-foreground" />
+              <Select value={selectedDivision} onValueChange={setSelectedDivision}>
+                <SelectTrigger className="w-64" data-testid="division-select">
+                  <SelectValue placeholder="Select division (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No default division</SelectItem>
+                  {divisions.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Upload Section */}
       <Card className="bg-card border-border/40 mb-6">
