@@ -1,0 +1,225 @@
+# RallyDesk - Production Deployment Guide for Render
+
+## Production Readiness Assessment
+
+### ✅ Ready
+- Full-stack application (React + FastAPI + MongoDB)
+- User authentication (JWT + Google OAuth)
+- Core tournament management features
+- Division & player management with CSV import
+- Draw generation with seeding options
+- Live match scoring and bracket progression
+- Public live match center (no auth required)
+- Dark/light theme support
+- Responsive UI with Shadcn components
+
+### ⚠️ Recommendations Before Production
+1. **Database**: Use MongoDB Atlas (free tier available) instead of local MongoDB
+2. **Environment Variables**: Secure all secrets
+3. **CORS**: Restrict to your domain only
+4. **Rate Limiting**: Consider adding for API protection
+5. **Error Logging**: Add production error tracking (e.g., Sentry)
+
+---
+
+## Render Deployment Instructions
+
+### Step 1: Prepare Your Repository
+
+1. Push your code to GitHub/GitLab
+2. Ensure these files exist in your repo root:
+   - `/backend/requirements.txt`
+   - `/frontend/package.json`
+
+### Step 2: Set Up MongoDB Atlas (Free)
+
+1. Go to [MongoDB Atlas](https://www.mongodb.com/atlas)
+2. Create free cluster (M0 Sandbox - FREE)
+3. Create database user with password
+4. Whitelist IP: `0.0.0.0/0` (allow from anywhere)
+5. Get connection string: `mongodb+srv://<user>:<password>@cluster.xxxxx.mongodb.net/rallydesk`
+
+### Step 3: Deploy Backend on Render
+
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Click "New" → "Web Service"
+3. Connect your GitHub repo
+4. Configure:
+   ```
+   Name: rallydesk-api
+   Region: Oregon (or closest)
+   Branch: main
+   Root Directory: backend
+   Runtime: Python 3
+   Build Command: pip install -r requirements.txt
+   Start Command: uvicorn server:app --host 0.0.0.0 --port $PORT
+   Instance Type: Free (or Starter $7/mo for better performance)
+   ```
+
+5. Add Environment Variables:
+   ```
+   MONGO_URL=mongodb+srv://<user>:<password>@cluster.xxxxx.mongodb.net/rallydesk
+   DB_NAME=rallydesk
+   JWT_SECRET=<generate-a-secure-random-string-64-chars>
+   CORS_ORIGINS=https://your-frontend-url.onrender.com
+   GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
+   GOOGLE_CLIENT_SECRET=<your-google-oauth-secret>
+   GOOGLE_REDIRECT_URI=https://rallydesk-api.onrender.com/api/auth/google/callback
+   ```
+
+6. Click "Create Web Service"
+
+### Step 4: Deploy Frontend on Render
+
+1. Click "New" → "Static Site"
+2. Connect same GitHub repo
+3. Configure:
+   ```
+   Name: rallydesk
+   Branch: main
+   Root Directory: frontend
+   Build Command: yarn install && yarn build
+   Publish Directory: build
+   ```
+
+4. Add Environment Variables:
+   ```
+   REACT_APP_BACKEND_URL=https://rallydesk-api.onrender.com
+   ```
+
+5. Click "Create Static Site"
+
+### Step 5: Configure Routing (Important!)
+
+For React Router to work, add a `_redirects` file:
+
+Create `/frontend/public/_redirects`:
+```
+/*    /index.html   200
+```
+
+Or in Render dashboard, go to your static site → "Redirects/Rewrites" and add:
+```
+Source: /*
+Destination: /index.html
+Action: Rewrite
+```
+
+### Step 6: Update Google OAuth (If Using)
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Navigate to APIs & Services → Credentials
+3. Edit your OAuth 2.0 Client
+4. Add Authorized redirect URIs:
+   - `https://rallydesk-api.onrender.com/api/auth/google/callback`
+5. Add Authorized JavaScript origins:
+   - `https://rallydesk.onrender.com`
+
+---
+
+## Environment Variables Summary
+
+### Backend (.env)
+```env
+MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/rallydesk
+DB_NAME=rallydesk
+JWT_SECRET=your-64-character-secret-key-here
+CORS_ORIGINS=https://rallydesk.onrender.com
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=https://rallydesk-api.onrender.com/api/auth/google/callback
+```
+
+### Frontend (.env)
+```env
+REACT_APP_BACKEND_URL=https://rallydesk-api.onrender.com
+```
+
+---
+
+## Post-Deployment Checklist
+
+- [ ] Backend health check: `https://rallydesk-api.onrender.com/api/health`
+- [ ] Frontend loads correctly
+- [ ] User registration works
+- [ ] User login works
+- [ ] Google OAuth works (if configured)
+- [ ] Tournament creation works
+- [ ] Player CSV import works
+- [ ] Draw generation works
+- [ ] Live match center accessible without login
+
+---
+
+## Cost Estimate (Render)
+
+| Service | Plan | Cost |
+|---------|------|------|
+| Backend API | Free | $0/mo |
+| Frontend Static | Free | $0/mo |
+| MongoDB Atlas | M0 Free | $0/mo |
+| **Total** | | **$0/mo** |
+
+For better performance:
+- Starter Backend: $7/mo (no cold starts)
+- MongoDB Atlas M2: $9/mo (better performance)
+
+---
+
+## Troubleshooting
+
+### Backend won't start
+- Check Render logs for errors
+- Verify MONGO_URL is correct
+- Ensure all env variables are set
+
+### Frontend API calls fail
+- Check CORS_ORIGINS includes your frontend URL
+- Verify REACT_APP_BACKEND_URL is correct
+- Check browser console for errors
+
+### Google OAuth fails
+- Verify redirect URI matches exactly
+- Check GOOGLE_CLIENT_ID and SECRET are correct
+- Ensure OAuth consent screen is configured
+
+---
+
+## Alternative: One-Click Deploy with render.yaml
+
+Create `render.yaml` in your repo root for blueprint deployment:
+
+```yaml
+services:
+  - type: web
+    name: rallydesk-api
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: rallydesk
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: rallydesk
+    env: static
+    rootDir: frontend
+    buildCommand: yarn install && yarn build
+    staticPublishPath: build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        sync: false
+```
+
+Then in Render: New → Blueprint → Connect repo → Deploy
