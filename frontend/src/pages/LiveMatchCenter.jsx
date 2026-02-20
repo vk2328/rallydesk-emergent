@@ -297,7 +297,7 @@ const LiveMatchCenter = () => {
       {/* Footer */}
       <div className="border-t border-border/40 mt-8 py-6 text-center">
         <p className="text-sm text-muted-foreground">
-          Powered by <span className="font-heading text-primary">RallyDesk</span> • Auto-refreshing every 5 seconds
+          Powered by <span className="font-heading text-emerald-400">RallyDesk</span> • Auto-refreshing every 5 seconds
         </p>
         <div className="mt-2">
           <Link to="/login">
