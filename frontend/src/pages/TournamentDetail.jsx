@@ -454,13 +454,23 @@ const TournamentDetail = () => {
                 </CardDescription>
               </div>
               {isAdmin && (
-                <Dialog open={isAddPlayerOpen} onOpenChange={setIsAddPlayerOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" data-testid="add-player-btn">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Player
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => navigate(`/tournaments/${id}/import-players`)}
+                    data-testid="import-players-btn"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import CSV
+                  </Button>
+                  <Dialog open={isAddPlayerOpen} onOpenChange={setIsAddPlayerOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" data-testid="add-player-btn">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Player
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent className="bg-card border-border">
                     <DialogHeader>
                       <DialogTitle className="font-heading uppercase">Add Player</DialogTitle>
