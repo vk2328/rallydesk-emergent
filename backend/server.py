@@ -119,6 +119,7 @@ class PlayerCreate(BaseModel):
     rating: Optional[int] = None
     team_name: Optional[str] = None
     club: Optional[str] = None
+    division_id: Optional[str] = None
 
 class PlayerResponse(BaseModel):
     id: str
@@ -134,6 +135,8 @@ class PlayerResponse(BaseModel):
     rating: Optional[int] = None
     team_name: Optional[str] = None
     club: Optional[str] = None
+    division_id: Optional[str] = None
+    division_name: Optional[str] = None
     wins: int = 0
     losses: int = 0
     matches_played: int = 0
