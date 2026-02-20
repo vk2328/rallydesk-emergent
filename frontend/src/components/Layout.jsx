@@ -103,13 +103,22 @@ const Layout = ({ children }) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Rankings</DropdownMenuLabel>
+                  <DropdownMenuLabel>Rankings by Sport</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/leaderboard/table_tennis')}>
                     <span className="mr-2">🏓</span> Table Tennis
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/leaderboard/badminton')}>
                     <span className="mr-2">🏸</span> Badminton
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/leaderboard/volleyball')}>
+                    <span className="mr-2">🏐</span> Volleyball
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/leaderboard/tennis')}>
+                    <span className="mr-2">🎾</span> Tennis
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/leaderboard/pickleball')}>
+                    <span className="mr-2">🥒</span> Pickleball
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
