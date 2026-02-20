@@ -1,5 +1,5 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Layout from "./components/Layout";
@@ -18,6 +18,7 @@ import PublicBoard from "./pages/PublicBoard";
 import PlayerImport from "./pages/PlayerImport";
 import Standings from "./pages/Standings";
 import Leaderboard from "./pages/Leaderboard";
+import AuthCallback from "./pages/AuthCallback";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
