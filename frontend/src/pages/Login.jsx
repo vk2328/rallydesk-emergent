@@ -296,6 +296,59 @@ const Login = () => {
           </Tabs>
         </Card>
 
+        {/* Email Verification Modal */}
+        <Dialog open={showVerification} onOpenChange={setShowVerification}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-primary" />
+                Verify Your Email
+              </DialogTitle>
+              <DialogDescription>
+                We've sent a verification code to your email. Enter it below to verify your account.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleVerifyEmail} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="verification-code">Verification Code</Label>
+                <Input
+                  id="verification-code"
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
+                  maxLength={6}
+                  required
+                  data-testid="verification-code"
+                  className="text-center text-2xl tracking-widest font-mono"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={loading || verificationCode.length !== 6}
+                >
+                  {loading ? 'Verifying...' : 'Verify Email'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    navigate('/dashboard');
+                    setShowVerification(false);
+                  }}
+                >
+                  Skip for now
+                </Button>
+              </div>
+              <p className="text-xs text-center text-muted-foreground">
+                Check your spam folder if you don't see the email.
+              </p>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         {/* Sport icons */}
         <div className="flex justify-center gap-4 mt-8 opacity-40">
           {['🏓', '🏸', '🏐', '🎾', '🥒'].map((icon, i) => (
