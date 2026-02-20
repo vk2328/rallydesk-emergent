@@ -1089,10 +1089,16 @@ async def get_leaderboard(sport: str, current_user: dict = Depends(get_current_u
     leaderboard = []
     for idx, player in enumerate(players):
         win_rate = (player["wins"] / player["matches_played"] * 100) if player["matches_played"] > 0 else 0
+        name = f"{player.get('first_name', '')} {player.get('last_name', '')}".strip() or player.get("name", "Unknown")
         leaderboard.append({
             "rank": idx + 1,
             "id": player["id"],
-            "name": player["name"],
+            "name": name,
+            "first_name": player.get("first_name"),
+            "last_name": player.get("last_name"),
+            "gender": player.get("gender"),
+            "age": player.get("age"),
+            "team": player.get("team"),
             "wins": player["wins"],
             "losses": player["losses"],
             "matches_played": player["matches_played"],
