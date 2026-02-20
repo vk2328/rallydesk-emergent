@@ -43,6 +43,33 @@ const Dashboard = () => {
     }
   };
 
+  const handleVerifyEmail = async (e) => {
+    e.preventDefault();
+    setVerifying(true);
+    try {
+      await verifyEmail(verificationCode);
+      toast.success('Email verified successfully!');
+      setShowVerifyModal(false);
+      setVerificationCode('');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Verification failed');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setResending(true);
+    try {
+      await resendVerification();
+      toast.success('Verification code sent! Check your email.');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to resend code');
+    } finally {
+      setResending(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -56,8 +83,101 @@ const Dashboard = () => {
     );
   }
 
+  const showEmailVerificationBanner = user && !user.email_verified && !dismissedBanner;
+
   return (
     <div className="p-6 space-y-8" data-testid="dashboard">
+      {/* Email Verification Banner */}
+      {showEmailVerificationBanner && (
+        <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-200">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="flex items-center justify-between flex-wrap gap-2">
+            <span className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Please verify your email address to enable all features.
+            </span>
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="border-amber-500/50 text-amber-200 hover:bg-amber-500/20"
+                onClick={() => setShowVerifyModal(true)}
+                data-testid="verify-email-banner-btn"
+              >
+                Verify Now
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="text-amber-200/60 hover:text-amber-200"
+                onClick={() => setDismissedBanner(true)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Email Verification Modal */}
+      <Dialog open={showVerifyModal} onOpenChange={setShowVerifyModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-primary" />
+              Verify Your Email
+            </DialogTitle>
+            <DialogDescription>
+              Enter the 6-digit verification code sent to your email address.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleVerifyEmail} className="space-y-4">
+            <Input
+              type="text"
+              placeholder="Enter 6-digit code"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
+              maxLength={6}
+              data-testid="dashboard-verification-code"
+              className="text-center text-2xl tracking-widest font-mono"
+            />
+            <div className="flex gap-2">
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={verifying || verificationCode.length !== 6}
+              >
+                {verifying ? 'Verifying...' : 'Verify Email'}
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <span className="text-sm text-muted-foreground">Didn't receive the code?</span>
+              <Button 
+                type="button" 
+                variant="link" 
+                size="sm"
+                className="p-0 h-auto"
+                onClick={handleResendCode}
+                disabled={resending}
+                data-testid="dashboard-resend-code-btn"
+              >
+                {resending ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Resend Code'
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+              Check your spam folder if you don't see the email.
+            </p>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
