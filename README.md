@@ -124,7 +124,10 @@ yarn start
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login
 - `GET /api/auth/me` - Get current user
-- `GET /api/auth/google/login` - Google OAuth
+- `POST /api/auth/verify-email` - Verify email with code
+- `POST /api/auth/resend-verification` - Resend verification code
+- `POST /api/auth/google/session` - Google OAuth session
+- `POST /api/auth/facebook/callback` - Facebook OAuth callback
 
 ### Tournaments
 - `GET /api/tournaments` - List tournaments
@@ -132,6 +135,9 @@ yarn start
 - `GET /api/tournaments/{id}` - Get tournament
 - `PUT /api/tournaments/{id}` - Update tournament
 - `DELETE /api/tournaments/{id}` - Delete tournament
+- `PUT /api/tournaments/{id}/scoring-rules` - Update scoring rules
+- `GET /api/tournaments/{id}/moderators` - List moderators
+- `POST /api/tournaments/{id}/moderators` - Add/remove moderator
 
 ### Divisions
 - `GET /api/tournaments/{id}/divisions` - List divisions
@@ -147,10 +153,15 @@ yarn start
 - `GET /api/tournaments/{id}/competitions` - List competitions
 - `POST /api/tournaments/{id}/competitions` - Create competition
 - `POST /api/tournaments/{id}/competitions/{cid}/generate-draw-advanced` - Generate draw
+- `GET /api/tournaments/{id}/competitions/{cid}/score-sheet-pdf` - Download PDF score sheet
 
-### Matches
+### Matches & Referee Scoring
 - `GET /api/tournaments/{id}/matches` - List matches
 - `PUT /api/tournaments/{id}/matches/{mid}/update-score` - Update score
+- `POST /api/tournaments/{id}/matches/{mid}/generate-referee-access` - Generate referee access code
+- `POST /api/referee/verify-access` - Verify referee code
+- `GET /api/referee/{tournamentId}/{matchId}` - Get match info for referee
+- `POST /api/referee/{tournamentId}/{matchId}/update-score` - Submit referee score
 
 ### Public (No Auth)
 - `GET /api/stats/live-match-center` - Live matches data
