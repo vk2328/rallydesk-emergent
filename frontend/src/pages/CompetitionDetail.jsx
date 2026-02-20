@@ -128,17 +128,73 @@ const CompetitionDetail = () => {
     setGenerating(true);
     try {
       const response = await axios.post(
-        `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/generate-draw`,
-        {},
+        `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/generate-draw-advanced`,
+        {
+          seeding: seedingOption,
+          seed_order: seedingOption === 'manual' ? manualSeedOrder : null
+        },
         { headers: getAuthHeader() }
       );
       toast.success(response.data.message);
+      setIsDrawOptionsOpen(false);
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to generate draw');
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleSwapParticipants = async (match1Id, match2Id, swapType) => {
+    try {
+      await axios.post(
+        `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/swap-participants`,
+        { match1_id: match1Id, match2_id: match2Id, swap_type: swapType },
+        { headers: getAuthHeader() }
+      );
+      toast.success('Participants swapped');
+      setSelectedMatchForSwap(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to swap participants');
+    }
+  };
+
+  const handleAdvanceWinner = async (matchId, winnerId) => {
+    try {
+      await axios.post(
+        `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/advance-winner`,
+        { match_id: matchId, winner_id: winnerId },
+        { headers: getAuthHeader() }
+      );
+      toast.success('Winner advanced to next round');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to advance winner');
+    }
+  };
+
+  const moveSeedUp = (idx) => {
+    if (idx === 0) return;
+    const newOrder = [...manualSeedOrder];
+    [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+    setManualSeedOrder(newOrder);
+  };
+
+  const moveSeedDown = (idx) => {
+    if (idx === manualSeedOrder.length - 1) return;
+    const newOrder = [...manualSeedOrder];
+    [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+    setManualSeedOrder(newOrder);
+  };
+
+  const getParticipantName = (participantId) => {
+    if (!participantId) return 'TBD';
+    const player = participants.find(p => p.id === participantId);
+    if (player) {
+      return `${player.first_name || ''} ${player.last_name || ''}`.trim() || player.name || 'Unknown';
+    }
+    return bracketData?.participants?.[participantId]?.name || 'Unknown';
   };
 
   const handleResetDraw = async () => {
