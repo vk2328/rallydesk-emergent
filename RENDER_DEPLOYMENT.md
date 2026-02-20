@@ -191,7 +191,33 @@ Email verification helps ensure users provide valid email addresses.
 
 > **Note:** The Facebook login button only appears when `REACT_APP_FACEBOOK_APP_ID` is configured.
 
-### Step 8: Configure Google OAuth (Optional)
+### Step 8: Configure Cloudflare Turnstile Bot Protection (Recommended)
+
+Turnstile is Cloudflare's free, privacy-friendly CAPTCHA alternative.
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → **Turnstile**
+2. Click **Add Site**
+3. Enter your domain name (e.g., `rallydesk.app`)
+4. Select **Widget Mode**:
+   - **Managed** (recommended): Cloudflare decides when to show challenge
+   - **Non-interactive**: Always invisible
+   - **Invisible**: Challenge only when suspicious
+5. Copy your **Site Key** and **Secret Key**
+6. Add to your Render environment variables:
+
+   **Backend:**
+   ```
+   TURNSTILE_SECRET_KEY=your-secret-key
+   ```
+   
+   **Frontend:**
+   ```
+   REACT_APP_TURNSTILE_SITE_KEY=your-site-key
+   ```
+
+> **Note:** The Turnstile widget only appears when `REACT_APP_TURNSTILE_SITE_KEY` is configured. Without it, forms work normally (good for development).
+
+### Step 9: Configure Google OAuth (Optional)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Navigate to APIs & Services → Credentials
