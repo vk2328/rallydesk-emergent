@@ -158,12 +158,21 @@ yarn start
 
 See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for detailed deployment instructions on Render.
 
+### Production URLs
+
+| Service | URL |
+|---------|-----|
+| Frontend | https://rallydesk.app |
+| Frontend (www) | https://www.rallydesk.app |
+| Backend API | https://api.rallydesk.app |
+
 ### Quick Deploy (Free)
 1. Push to GitHub
 2. Create MongoDB Atlas free cluster
 3. Deploy backend on Render (Web Service)
 4. Deploy frontend on Render (Static Site)
 5. Configure environment variables
+6. Add custom domain (see RENDER_DEPLOYMENT.md)
 
 ## User Roles
 
