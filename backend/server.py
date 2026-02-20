@@ -500,8 +500,16 @@ async def register(user_data: UserCreate):
     }
     await db.users.insert_one(user_doc)
     
-    # Log verification code (in production, send via email)
-    logger.info(f"Email verification code for {user_data.email}: {verification_code}")
+    # Send verification email via Mailjet
+    email_sent = send_verification_email(
+        recipient_email=user_data.email,
+        verification_code=verification_code,
+        recipient_name=f"{user_data.first_name} {user_data.last_name}".strip() or None
+    )
+    
+    if not email_sent:
+        # Log verification code as fallback (only if email service fails)
+        logger.info(f"Email service unavailable. Verification code for {user_data.email}: {verification_code}")
     
     token = create_access_token({"sub": user_id})
     return TokenResponse(
