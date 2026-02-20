@@ -183,12 +183,14 @@ yarn start
 | MJ_APIKEY_PRIVATE | Mailjet private API key | No |
 | MJ_FROM_EMAIL | Sender email address | No |
 | EMAIL_FROM_NAME | Sender display name | No |
+| TURNSTILE_SECRET_KEY | Cloudflare Turnstile secret | No |
 
 ### Frontend
 | Variable | Description | Required |
 |----------|-------------|----------|
 | REACT_APP_BACKEND_URL | Backend API URL | Yes |
 | REACT_APP_FACEBOOK_APP_ID | Facebook App ID for OAuth | No |
+| REACT_APP_TURNSTILE_SITE_KEY | Cloudflare Turnstile site key | No |
 
 ## Deployment
 
