@@ -293,17 +293,30 @@ Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Wome
           <div>
             <h4 className="font-medium mb-2">Required Columns:</h4>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              <li><span className="text-foreground">first_name</span> - Player's first name (required)</li>
-              <li><span className="text-foreground">last_name</span> - Player's last name (optional)</li>
+              <li><span className="text-foreground">firstName</span> - Player's first name (required)</li>
+              <li><span className="text-foreground">lastName</span> - Player's last name (optional)</li>
             </ul>
           </div>
           <div>
             <h4 className="font-medium mb-2">Optional Columns:</h4>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
               <li><span className="text-foreground">email</span> - Player's email address</li>
-              <li><span className="text-foreground">skill_level</span> - beginner, intermediate, or advanced</li>
               <li><span className="text-foreground">phone</span> - Contact phone number</li>
+              <li><span className="text-foreground">gender</span> - male or female</li>
+              <li><span className="text-foreground">skillLevel</span> - beginner, intermediate, or advanced</li>
+              <li><span className="text-foreground">sports</span> - Sport(s): table_tennis, badminton, volleyball, tennis, pickleball</li>
+              <li><span className="text-foreground">rating</span> - Player rating (numeric)</li>
+              <li><span className="text-foreground font-semibold text-primary">team</span> - Team name (auto-creates team if not exists)</li>
+              <li><span className="text-foreground font-semibold text-primary">division</span> - Division name (auto-creates if not exists, e.g., Open, Men's, Women's)</li>
+              <li><span className="text-foreground">club</span> - Club affiliation</li>
             </ul>
+          </div>
+          <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <h4 className="font-medium mb-2 text-primary">Team Auto-Creation</h4>
+            <p className="text-sm text-muted-foreground">
+              When multiple players have the same value in the <code className="text-primary">team</code> column, 
+              they will automatically be grouped into a team. The team will be created if it doesn't exist.
+            </p>
           </div>
         </CardContent>
       </Card>
