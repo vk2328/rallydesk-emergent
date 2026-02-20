@@ -479,8 +479,8 @@ async def get_teams(sport: Optional[str] = None, current_user: dict = Depends(ge
     # Fetch player details for each team
     result = []
     for team in teams:
-        players = await db.players.find({"id": {"$in": team.get("player_ids", [])}}, {"_id": 0, "name": 1, "id": 1}).to_list(10)
-        team["players"] = players
+        players = await db.players.find({"id": {"$in": team.get("player_ids", [])}}, {"_id": 0, "first_name": 1, "last_name": 1, "id": 1}).to_list(10)
+        team["players"] = [{"id": p["id"], "name": f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()} for p in players]
         result.append(TeamResponse(**team))
     return result
 
