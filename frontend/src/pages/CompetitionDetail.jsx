@@ -281,25 +281,134 @@ const CompetitionDetail = () => {
           {isAdmin && (
             <div className="flex gap-2">
               {competition.status === 'draft' && participants.length >= 2 && (
-                <Button 
-                  onClick={handleGenerateDraw}
-                  className="font-bold uppercase tracking-wider"
-                  disabled={generating}
-                  data-testid="generate-draw-btn"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {generating ? 'Generating...' : 'Generate Draw'}
-                </Button>
+                <Dialog open={isDrawOptionsOpen} onOpenChange={setIsDrawOptionsOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="font-bold uppercase tracking-wider"
+                      data-testid="generate-draw-btn"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Generate Draw
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-card border-border max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="font-heading uppercase">Draw Options</DialogTitle>
+                      <DialogDescription>
+                        Configure seeding and generate the competition bracket
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6">
+                      {/* Seeding Options */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Seeding Method</Label>
+                        <div className="grid grid-cols-3 gap-3">
+                          <Button
+                            variant={seedingOption === 'random' ? 'default' : 'outline'}
+                            className="flex flex-col h-auto py-4"
+                            onClick={() => setSeedingOption('random')}
+                          >
+                            <Shuffle className="w-5 h-5 mb-2" />
+                            <span className="text-sm">Random</span>
+                          </Button>
+                          <Button
+                            variant={seedingOption === 'rating' ? 'default' : 'outline'}
+                            className="flex flex-col h-auto py-4"
+                            onClick={() => setSeedingOption('rating')}
+                          >
+                            <Trophy className="w-5 h-5 mb-2" />
+                            <span className="text-sm">By Rating</span>
+                          </Button>
+                          <Button
+                            variant={seedingOption === 'manual' ? 'default' : 'outline'}
+                            className="flex flex-col h-auto py-4"
+                            onClick={() => setSeedingOption('manual')}
+                          >
+                            <GripVertical className="w-5 h-5 mb-2" />
+                            <span className="text-sm">Manual</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Manual Seed Order */}
+                      {seedingOption === 'manual' && (
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Seed Order (drag to reorder)</Label>
+                          <ScrollArea className="h-64 border border-border rounded-lg p-2">
+                            {manualSeedOrder.map((participantId, idx) => {
+                              const p = participants.find(p => p.id === participantId);
+                              const name = p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.name : 'Unknown';
+                              return (
+                                <div
+                                  key={participantId}
+                                  className="flex items-center gap-3 p-2 rounded hover:bg-muted/50 group"
+                                >
+                                  <span className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center font-bold text-sm">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="flex-1">{name}</span>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      onClick={() => moveSeedUp(idx)}
+                                      disabled={idx === 0}
+                                    >
+                                      <ArrowUpDown className="w-4 h-4 rotate-180" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      onClick={() => moveSeedDown(idx)}
+                                      disabled={idx === manualSeedOrder.length - 1}
+                                    >
+                                      <ArrowUpDown className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </ScrollArea>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3">
+                        <Button variant="outline" onClick={() => setIsDrawOptionsOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleGenerateDraw}
+                          disabled={generating}
+                          data-testid="confirm-generate-draw"
+                        >
+                          {generating ? 'Generating...' : 'Generate Draw'}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
               {competition.status !== 'draft' && (
-                <Button 
-                  variant="outline"
-                  onClick={handleResetDraw}
-                  data-testid="reset-draw-btn"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Reset Draw
-                </Button>
+                <>
+                  <Button 
+                    variant={isEditBracketMode ? 'default' : 'outline'}
+                    onClick={() => setIsEditBracketMode(!isEditBracketMode)}
+                    data-testid="edit-bracket-btn"
+                  >
+                    <Settings2 className="w-4 h-4 mr-2" />
+                    {isEditBracketMode ? 'Done Editing' : 'Edit Bracket'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={handleResetDraw}
+                    data-testid="reset-draw-btn"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reset Draw
+                  </Button>
+                </>
               )}
             </div>
           )}
