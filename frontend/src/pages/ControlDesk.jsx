@@ -221,6 +221,8 @@ const ControlDesk = () => {
             <div className="space-y-3">
               {filteredResources.length > 0 ? filteredResources.map(resource => {
                 const currentMatch = matches.find(m => m.resource_id === resource.id && m.status === 'live');
+                const scheduledMatch = matches.find(m => m.resource_id === resource.id && m.status === 'scheduled');
+                const activeMatch = currentMatch || scheduledMatch;
                 
                 return (
                   <div
@@ -228,9 +230,11 @@ const ControlDesk = () => {
                     className={`p-4 rounded-lg border transition-colors ${
                       currentMatch 
                         ? 'border-red-500 bg-red-500/10' 
-                        : resource.locked 
+                        : scheduledMatch
                           ? 'border-yellow-500 bg-yellow-500/10'
-                          : 'border-border/40 bg-muted/30'
+                          : resource.locked 
+                            ? 'border-orange-500 bg-orange-500/10'
+                            : 'border-border/40 bg-muted/30'
                     }`}
                     data-testid={`resource-${resource.id}`}
                   >
@@ -241,29 +245,45 @@ const ControlDesk = () => {
                       </div>
                       <Badge variant="outline" className={
                         currentMatch ? 'border-red-500 text-red-500' :
-                        resource.locked ? 'border-yellow-500 text-yellow-500' :
+                        scheduledMatch ? 'border-yellow-500 text-yellow-500' :
+                        resource.locked ? 'border-orange-500 text-orange-500' :
                         'border-green-500 text-green-500'
                       }>
-                        {currentMatch ? 'In Use' : resource.locked ? 'Locked' : 'Available'}
+                        {currentMatch ? 'Live' : scheduledMatch ? 'Ready' : resource.locked ? 'Locked' : 'Available'}
                       </Badge>
                     </div>
                     
-                    {currentMatch && (
+                    {activeMatch && (
                       <div className="mt-3 p-3 bg-background/50 rounded">
-                        <p className="text-sm text-muted-foreground mb-1">{currentMatch.competition_name}</p>
+                        <p className="text-sm text-muted-foreground mb-1">{activeMatch.competition_name}</p>
                         <p className="font-medium">
-                          {currentMatch.participant1?.name || getPlayerName(currentMatch.participant1)} vs{' '}
-                          {currentMatch.participant2?.name || getPlayerName(currentMatch.participant2)}
+                          {activeMatch.participant1?.name || getPlayerName(activeMatch.participant1)} vs{' '}
+                          {activeMatch.participant2?.name || getPlayerName(activeMatch.participant2)}
                         </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2 w-full"
-                          onClick={() => handleEndMatch(currentMatch.id)}
-                        >
-                          <ChevronRight className="w-4 h-4 mr-1" />
-                          View Scoreboard
-                        </Button>
+                        
+                        {scheduledMatch && canAssign && (
+                          <Button
+                            size="sm"
+                            className="mt-2 w-full bg-green-600 hover:bg-green-700"
+                            onClick={() => handleStartMatch(scheduledMatch.id)}
+                            data-testid={`start-match-${scheduledMatch.id}`}
+                          >
+                            <Play className="w-4 h-4 mr-1" />
+                            Start Match
+                          </Button>
+                        )}
+                        
+                        {currentMatch && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 w-full"
+                            onClick={() => handleEndMatch(currentMatch.id)}
+                          >
+                            <ChevronRight className="w-4 h-4 mr-1" />
+                            View Scoreboard
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
