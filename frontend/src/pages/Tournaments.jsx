@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { API_URL, formatSport, formatFormat, formatMatchType, formatStatus, getStatusColor } from '../lib/utils';
+import { API_URL, formatStatus, getStatusColor } from '../lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -10,14 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
-import { Plus, Search, Trophy, Calendar, Users, ArrowRight, Trash2 } from 'lucide-react';
+import { Plus, Search, Trophy, Calendar, MapPin, ArrowRight, Trash2 } from 'lucide-react';
 
 const Tournaments = () => {
   const { getAuthHeader } = useAuth();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sportFilter, setSportFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
@@ -40,7 +39,7 @@ const Tournaments = () => {
   const handleDelete = async (e, tournamentId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this tournament?')) return;
+    if (!window.confirm('Are you sure you want to delete this tournament? This will also delete all associated data.')) return;
     try {
       await axios.delete(`${API_URL}/tournaments/${tournamentId}`, {
         headers: getAuthHeader()
@@ -48,15 +47,15 @@ const Tournaments = () => {
       toast.success('Tournament deleted');
       fetchTournaments();
     } catch (error) {
-      toast.error('Failed to delete tournament');
+      toast.error(error.response?.data?.detail || 'Failed to delete tournament');
     }
   };
 
   const filteredTournaments = tournaments.filter(tournament => {
-    const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSport = sportFilter === 'all' || tournament.sport === sportFilter;
+    const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (tournament.venue && tournament.venue.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || tournament.status === statusFilter;
-    return matchesSearch && matchesSport && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
 
   if (loading) {
@@ -81,7 +80,7 @@ const Tournaments = () => {
             Tournaments
           </h1>
           <p className="text-muted-foreground mt-1">
-            Create and manage your tournaments
+            Create and manage your multi-sport tournaments
           </p>
         </div>
         <Link to="/tournaments/new">
@@ -99,23 +98,13 @@ const Tournaments = () => {
             <div className="flex-1 relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search tournaments..."
+                placeholder="Search tournaments by name or venue..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-background/50"
                 data-testid="tournament-search"
               />
             </div>
-            <Select value={sportFilter} onValueChange={setSportFilter}>
-              <SelectTrigger className="w-full md:w-48" data-testid="tournament-sport-filter">
-                <SelectValue placeholder="Filter by sport" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sports</SelectItem>
-                <SelectItem value="table_tennis">🏓 Table Tennis</SelectItem>
-                <SelectItem value="badminton">🏸 Badminton</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-48" data-testid="tournament-status-filter">
                 <SelectValue placeholder="Filter by status" />
@@ -123,7 +112,7 @@ const Tournaments = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="registration">Registration</SelectItem>
+                <SelectItem value="draw_generated">Draw Ready</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>
@@ -143,10 +132,8 @@ const Tournaments = () => {
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                      tournament.sport === 'table_tennis' ? 'bg-table-tennis/20' : 'bg-badminton/20'
-                    }`}>
-                      <span className="text-2xl">{tournament.sport === 'table_tennis' ? '🏓' : '🏸'}</span>
+                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
+                      <Trophy className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className={getStatusColor(tournament.status)}>
@@ -172,29 +159,29 @@ const Tournaments = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {formatFormat(tournament.format)}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {formatMatchType(tournament.match_type)}
-                      </Badge>
-                    </div>
+                    {tournament.venue && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4" />
+                        {tournament.venue}
+                      </div>
+                    )}
                     
                     <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/40">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         {new Date(tournament.start_date).toLocaleDateString()}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="w-4 h-4" />
-                        {tournament.participant_ids?.length || 0} / {tournament.max_participants}
-                      </div>
+                      {tournament.end_date && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(tournament.end_date).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-end pt-2">
                       <span className="text-sm text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
-                        View Details <ArrowRight className="w-4 h-4" />
+                        Manage <ArrowRight className="w-4 h-4" />
                       </span>
                     </div>
                   </div>
