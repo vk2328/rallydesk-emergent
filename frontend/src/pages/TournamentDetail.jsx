@@ -317,11 +317,122 @@ const TournamentDetail = () => {
       {/* Tabs */}
       <Tabs defaultValue="competitions" className="w-full">
         <TabsList className="bg-muted/50">
+          <TabsTrigger value="divisions" data-testid="divisions-tab">Divisions</TabsTrigger>
           <TabsTrigger value="competitions" data-testid="competitions-tab">Competitions</TabsTrigger>
           <TabsTrigger value="players" data-testid="players-tab">Players</TabsTrigger>
           <TabsTrigger value="resources" data-testid="resources-tab">Resources</TabsTrigger>
           <TabsTrigger value="settings" data-testid="settings-tab">Settings</TabsTrigger>
         </TabsList>
+
+        {/* Divisions Tab */}
+        <TabsContent value="divisions" className="mt-4">
+          <Card className="bg-card border-border/40">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="font-heading uppercase">Divisions</CardTitle>
+                <CardDescription>
+                  Organize players into categories (e.g., Open, Men's, Women's, Mixed)
+                </CardDescription>
+              </div>
+              {isAdmin && (
+                <Dialog open={isAddDivisionOpen} onOpenChange={setIsAddDivisionOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" data-testid="add-division-btn">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Division
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-card border-border">
+                    <DialogHeader>
+                      <DialogTitle className="font-heading uppercase">Create Division</DialogTitle>
+                      <DialogDescription>
+                        Create a new division to organize players
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Division Name *</Label>
+                        <Input
+                          value={newDivision.name}
+                          onChange={(e) => setNewDivision({ ...newDivision, name: e.target.value })}
+                          placeholder="e.g., Open, Men's, Women's, Mixed, U18"
+                          data-testid="division-name-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Textarea
+                          value={newDivision.description}
+                          onChange={(e) => setNewDivision({ ...newDivision, description: e.target.value })}
+                          placeholder="Optional description for this division"
+                          data-testid="division-description-input"
+                        />
+                      </div>
+                      <Button 
+                        onClick={handleAddDivision} 
+                        className="w-full"
+                        disabled={!newDivision.name}
+                        data-testid="confirm-add-division"
+                      >
+                        Create Division
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </CardHeader>
+            <CardContent>
+              {divisions.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {divisions.map((division) => {
+                    const playersInDivision = players.filter(p => p.division_id === division.id);
+                    return (
+                      <div
+                        key={division.id}
+                        className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors border border-border/40"
+                        data-testid={`division-${division.id}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                              <Layers className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">{division.name}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {playersInDivision.length} players
+                              </p>
+                            </div>
+                          </div>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteDivision(division.id)}
+                              className="text-muted-foreground hover:text-destructive"
+                              data-testid={`delete-division-${division.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        {division.description && (
+                          <p className="text-sm text-muted-foreground mt-2">{division.description}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No divisions yet</p>
+                  <p className="text-sm mt-1">Create divisions like Open, Men's, Women's, Mixed, etc.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Competitions Tab */}
         <TabsContent value="competitions" className="mt-4">
