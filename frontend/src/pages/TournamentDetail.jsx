@@ -658,6 +658,25 @@ const TournamentDetail = () => {
                           data-testid="player-email-input"
                         />
                       </div>
+                      {divisions.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Division</Label>
+                          <Select 
+                            value={newPlayer.division_id || ''} 
+                            onValueChange={(v) => setNewPlayer({ ...newPlayer, division_id: v })}
+                          >
+                            <SelectTrigger data-testid="player-division-select">
+                              <SelectValue placeholder="Select division (optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No division</SelectItem>
+                              {divisions.map((d) => (
+                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <Button 
                         onClick={handleAddPlayer} 
                         className="w-full"
@@ -673,9 +692,34 @@ const TournamentDetail = () => {
               )}
             </CardHeader>
             <CardContent>
+              {/* Division Filter */}
+              {divisions.length > 0 && players.length > 0 && (
+                <div className="mb-4 flex items-center gap-3">
+                  <Label className="text-sm text-muted-foreground">Filter by Division:</Label>
+                  <Select value={playerDivisionFilter} onValueChange={setPlayerDivisionFilter}>
+                    <SelectTrigger className="w-48" data-testid="player-division-filter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Divisions</SelectItem>
+                      <SelectItem value="none">No Division</SelectItem>
+                      {divisions.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
               {players.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {players.map((player, idx) => (
+                  {players
+                    .filter(player => {
+                      if (playerDivisionFilter === 'all') return true;
+                      if (playerDivisionFilter === 'none') return !player.division_id;
+                      return player.division_id === playerDivisionFilter;
+                    })
+                    .map((player, idx) => (
                     <div
                       key={player.id}
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
@@ -689,9 +733,14 @@ const TournamentDetail = () => {
                           <p className="font-medium">
                             {player.first_name} {player.last_name}
                           </p>
-                          {player.email && (
-                            <p className="text-xs text-muted-foreground">{player.email}</p>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {player.division_name && (
+                              <Badge variant="outline" className="text-xs">{player.division_name}</Badge>
+                            )}
+                            {player.email && (
+                              <p className="text-xs text-muted-foreground">{player.email}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {isAdmin && (
