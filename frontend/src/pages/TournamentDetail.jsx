@@ -586,15 +586,26 @@ const TournamentDetail = () => {
                             </div>
                           </div>
                           {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteDivision(division.id)}
-                              className="text-muted-foreground hover:text-destructive"
-                              data-testid={`delete-division-${division.id}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditDivision(division)}
+                                className="text-muted-foreground hover:text-primary"
+                                data-testid={`edit-division-${division.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteDivision(division.id)}
+                                className="text-muted-foreground hover:text-destructive"
+                                data-testid={`delete-division-${division.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           )}
                         </div>
                         {division.description && (
