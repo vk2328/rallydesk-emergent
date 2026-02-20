@@ -22,7 +22,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
-  const { login, register, verifyEmail } = useAuth();
+  const [resending, setResending] = useState(false);
+  const { login, register, verifyEmail, resendVerification } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
