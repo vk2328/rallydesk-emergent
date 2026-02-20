@@ -85,38 +85,38 @@ const LiveMatchCenter = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-red-500" />
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-emerald-500" />
               </div>
               <div>
-                <p className="text-2xl font-teko font-bold text-red-500">{stats.live}</p>
+                <p className="text-2xl font-teko font-bold text-emerald-500">{stats.live}</p>
                 <p className="text-xs text-muted-foreground uppercase">Live Now</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-yellow-500" />
+              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-amber-500" />
               </div>
               <div>
-                <p className="text-2xl font-teko font-bold text-yellow-500">{stats.pending}</p>
+                <p className="text-2xl font-teko font-bold text-amber-500">{stats.pending}</p>
                 <p className="text-xs text-muted-foreground uppercase">Upcoming</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-green-500" />
+              <div className="w-10 h-10 rounded-lg bg-sky-500/20 flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-sky-500" />
               </div>
               <div>
-                <p className="text-2xl font-teko font-bold text-green-500">{stats.completed}</p>
+                <p className="text-2xl font-teko font-bold text-sky-500">{stats.completed}</p>
                 <p className="text-xs text-muted-foreground uppercase">Completed Today</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                <Activity className="w-5 h-5 text-violet-500" />
               </div>
               <div>
-                <p className="text-2xl font-teko font-bold text-primary">{stats.tournaments}</p>
+                <p className="text-2xl font-teko font-bold text-violet-500">{stats.tournaments}</p>
                 <p className="text-xs text-muted-foreground uppercase">Active Tournaments</p>
               </div>
             </div>
