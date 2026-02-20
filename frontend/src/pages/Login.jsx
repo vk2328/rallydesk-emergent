@@ -15,18 +15,26 @@ const Login = () => {
   const [registerUsername, setRegisterUsername] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
-  const [registerDisplayName, setRegisterDisplayName] = useState('');
+  const [registerFirstName, setRegisterFirstName] = useState('');
+  const [registerLastName, setRegisterLastName] = useState('');
+  const [registerPhone, setRegisterPhone] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const { login, register, verifyEmail } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(loginUsername, loginPassword);
+      const response = await login(loginUsername, loginPassword);
       toast.success('Welcome back!');
-      navigate('/tournaments');
+      if (!response.user.email_verified) {
+        setShowVerification(true);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed');
     } finally {
@@ -38,11 +46,25 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await register(registerUsername, registerEmail, registerPassword, registerDisplayName);
-      toast.success('Account created! You start as a Viewer.');
-      navigate('/tournaments');
+      await register(registerUsername, registerEmail, registerPassword, registerFirstName, registerLastName, registerPhone);
+      toast.success('Account created! Please verify your email.');
+      setShowVerification(true);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyEmail = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await verifyEmail(verificationCode);
+      toast.success('Email verified successfully!');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Verification failed');
     } finally {
       setLoading(false);
     }
