@@ -584,7 +584,13 @@ async def resend_verification(current_user: dict = Depends(require_auth)):
         return {"message": "Verification code sent", "code": verification_code}
 
 @api_router.post("/auth/login", response_model=TokenResponse)
-async def login(credentials: UserLogin):
+async def login(credentials: UserLogin, request: Request):
+    # Verify Turnstile token if configured
+    if is_turnstile_enabled() and credentials.turnstile_token:
+        client_ip = request.client.host if request.client else None
+        if not await verify_turnstile_token(credentials.turnstile_token, client_ip):
+            raise HTTPException(status_code=400, detail="Security verification failed. Please try again.")
+    
     user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
     if not user or not verify_password(credentials.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
