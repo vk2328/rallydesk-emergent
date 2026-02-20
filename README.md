@@ -213,10 +213,12 @@ See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for detailed deployment instr
 
 | Role | Permissions |
 |------|-------------|
-| Admin | Full access - manage tournaments, players, draws |
-| Scorekeeper | Update match scores, manage control desk |
-| Viewer | View tournaments, matches, standings |
-| Public | View live match center (no login) |
+| Organizer | Create and manage own tournaments, assign moderators |
+| Moderator | Help manage specific tournaments (assigned by organizer) |
+| Referee | Update match scores via access code (no account needed) |
+| Public | View live match center (no login required) |
+
+> **Note:** RallyDesk uses a SaaS multi-tenant model. Any registered user can create and manage their own tournaments.
 
 ## CSV Import Format
 
