@@ -57,23 +57,28 @@ const PlayerImport = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await axios.post(
-        `${API_URL}/tournaments/${tournamentId}/players/csv/upload`,
-        formData,
-        {
-          headers: {
-            ...getAuthHeader(),
-            'Content-Type': 'multipart/form-data'
-          }
+      let url = `${API_URL}/tournaments/${tournamentId}/players/csv/upload`;
+      if (selectedDivision) {
+        url += `?division_id=${selectedDivision}`;
+      }
+      
+      const response = await axios.post(url, formData, {
+        headers: {
+          ...getAuthHeader(),
+          'Content-Type': 'multipart/form-data'
         }
-      );
+      });
       
       setResult(response.data);
-      toast.success(`Successfully imported ${response.data.imported} players`);
+      const msg = `Imported ${response.data.created} players`;
+      const extras = [];
+      if (response.data.teams_created > 0) extras.push(`${response.data.teams_created} teams created`);
+      if (response.data.divisions_created > 0) extras.push(`${response.data.divisions_created} divisions created`);
+      toast.success(extras.length > 0 ? `${msg}, ${extras.join(', ')}` : msg);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to import players');
       setResult({
-        imported: 0,
+        created: 0,
         errors: [error.response?.data?.detail || 'Upload failed']
       });
     } finally {
