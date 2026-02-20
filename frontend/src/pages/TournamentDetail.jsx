@@ -505,21 +505,40 @@ const TournamentDetail = () => {
                           </Select>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Format</Label>
-                        <Select 
-                          value={newCompetition.format} 
-                          onValueChange={(v) => setNewCompetition({ ...newCompetition, format: v })}
-                        >
-                          <SelectTrigger data-testid="competition-format-select">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {FORMATS.map((f) => (
-                              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Format</Label>
+                          <Select 
+                            value={newCompetition.format} 
+                            onValueChange={(v) => setNewCompetition({ ...newCompetition, format: v })}
+                          >
+                            <SelectTrigger data-testid="competition-format-select">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FORMATS.map((f) => (
+                                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Division</Label>
+                          <Select 
+                            value={newCompetition.division_id || 'none'} 
+                            onValueChange={(v) => setNewCompetition({ ...newCompetition, division_id: v === 'none' ? '' : v })}
+                          >
+                            <SelectTrigger data-testid="competition-division-select">
+                              <SelectValue placeholder="Select division" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No Division</SelectItem>
+                              {divisions.map((d) => (
+                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <Button 
                         onClick={handleAddCompetition} 
