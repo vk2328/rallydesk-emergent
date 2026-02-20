@@ -318,6 +318,15 @@ OPTIONS /api/auth/login HTTP/1.1" 400 Bad Request
 - Verify MONGO_URL is correct
 - Ensure all env variables are set
 
+### Python Package Installation Errors
+```
+ERROR: Could not find a version that satisfies the requirement <package>
+```
+**Solutions:**
+1. Check that `requirements.txt` doesn't have packages with pinned versions that don't exist on PyPI
+2. Remove any internal/private packages that aren't available publicly
+3. Use `pip freeze` locally to regenerate requirements with correct versions
+
 ### Frontend API calls fail
 - Check CORS_ORIGINS includes your frontend URL
 - Verify REACT_APP_BACKEND_URL is correct (e.g., `https://api.rallydesk.app`)
