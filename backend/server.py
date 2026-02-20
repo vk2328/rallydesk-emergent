@@ -659,10 +659,13 @@ async def logout(response: Response):
 
 # ============== TOURNAMENT ROUTES ==============
 
+class ModeratorUpdate(BaseModel):
+    user_id: str
+    action: str  # "add" or "remove"
+
 @api_router.post("/tournaments", response_model=TournamentResponse)
 async def create_tournament(tournament: TournamentCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
-    
+    # Anyone can create a tournament (they become the owner/organizer)
     tournament_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     settings = tournament.settings.model_dump() if tournament.settings else TournamentSettings().model_dump()
@@ -678,30 +681,27 @@ async def create_tournament(tournament: TournamentCreate, current_user: dict = D
         "settings": settings,
         "status": "draft",
         "created_by": current_user["id"],
-        "organizers": [current_user["id"]],
+        "moderators": [],  # Users who can help manage this tournament
         "created_at": now
     }
     await db.tournaments.insert_one(tournament_doc)
-    return TournamentResponse(**{k: v for k, v in tournament_doc.items() if k not in ["_id", "organizers"]})
+    return TournamentResponse(**{k: v for k, v in tournament_doc.items() if k not in ["_id", "moderators"]})
 
 @api_router.get("/tournaments", response_model=List[TournamentResponse])
 async def list_tournaments(current_user: dict = Depends(require_auth)):
-    tournaments = await db.tournaments.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    # Only return tournaments user owns or is a moderator of
+    filter_query = await get_user_tournaments_filter(current_user["id"])
+    tournaments = await db.tournaments.find(filter_query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return [TournamentResponse(**t) for t in tournaments]
 
 @api_router.get("/tournaments/{tournament_id}", response_model=TournamentResponse)
 async def get_tournament(tournament_id: str, current_user: dict = Depends(require_auth)):
-    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
+    tournament, _ = await require_tournament_access(tournament_id, current_user)
     return TournamentResponse(**tournament)
 
 @api_router.put("/tournaments/{tournament_id}")
 async def update_tournament(tournament_id: str, tournament: TournamentCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
-    existing = await db.tournaments.find_one({"id": tournament_id})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Tournament not found")
+    await require_tournament_access(tournament_id, current_user)
     
     update_data = tournament.model_dump(exclude_unset=True)
     if tournament.settings:
@@ -711,7 +711,9 @@ async def update_tournament(tournament_id: str, tournament: TournamentCreate, cu
 
 @api_router.delete("/tournaments/{tournament_id}")
 async def delete_tournament(tournament_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    # Only owner can delete tournament
+    await require_tournament_access(tournament_id, current_user, require_owner=True)
+    
     # Delete all related data
     await db.players.delete_many({"tournament_id": tournament_id})
     await db.resources.delete_many({"tournament_id": tournament_id})
@@ -721,6 +723,72 @@ async def delete_tournament(tournament_id: str, current_user: dict = Depends(req
     await db.teams.delete_many({"tournament_id": tournament_id})
     await db.tournaments.delete_one({"id": tournament_id})
     return {"message": "Tournament deleted"}
+
+@api_router.post("/tournaments/{tournament_id}/moderators")
+async def manage_moderator(tournament_id: str, update: ModeratorUpdate, current_user: dict = Depends(require_auth)):
+    """Add or remove moderators from a tournament (owner only)"""
+    await require_tournament_access(tournament_id, current_user, require_owner=True)
+    
+    # Verify the user to add/remove exists
+    target_user = await db.users.find_one({"id": update.user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if update.action == "add":
+        await db.tournaments.update_one(
+            {"id": tournament_id},
+            {"$addToSet": {"moderators": update.user_id}}
+        )
+        return {"message": f"Added {target_user.get('display_name', target_user['username'])} as moderator"}
+    elif update.action == "remove":
+        await db.tournaments.update_one(
+            {"id": tournament_id},
+            {"$pull": {"moderators": update.user_id}}
+        )
+        return {"message": f"Removed {target_user.get('display_name', target_user['username'])} as moderator"}
+    else:
+        raise HTTPException(status_code=400, detail="Action must be 'add' or 'remove'")
+
+@api_router.get("/tournaments/{tournament_id}/moderators")
+async def list_moderators(tournament_id: str, current_user: dict = Depends(require_auth)):
+    """List all moderators for a tournament"""
+    tournament, _ = await require_tournament_access(tournament_id, current_user)
+    
+    moderator_ids = tournament.get("moderators", [])
+    moderators = []
+    for mod_id in moderator_ids:
+        user = await db.users.find_one({"id": mod_id}, {"_id": 0, "password_hash": 0, "verification_code": 0})
+        if user:
+            moderators.append({
+                "id": user["id"],
+                "username": user["username"],
+                "display_name": user.get("display_name"),
+                "email": user["email"]
+            })
+    
+    return {"moderators": moderators, "owner_id": tournament.get("created_by")}
+
+@api_router.get("/users/search")
+async def search_users(q: str, current_user: dict = Depends(require_auth)):
+    """Search users by username or email (for adding moderators)"""
+    if len(q) < 2:
+        return []
+    
+    users = await db.users.find(
+        {"$or": [
+            {"username": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": q, "$options": "i"}},
+            {"display_name": {"$regex": q, "$options": "i"}}
+        ]},
+        {"_id": 0, "password_hash": 0, "verification_code": 0}
+    ).limit(10).to_list(10)
+    
+    return [{
+        "id": u["id"],
+        "username": u["username"],
+        "display_name": u.get("display_name"),
+        "email": u["email"]
+    } for u in users]
 
 # ============== PLAYER ROUTES ==============
 
