@@ -1672,6 +1672,178 @@ def generate_round_robin_matches(participant_ids: List[str], competition_id: str
     
     return matches
 
+def generate_single_elimination_seeded(participant_ids: List[str], competition_id: str, tournament_id: str, now: str, round_offset: int = 0) -> List[dict]:
+    """Generate single elimination bracket with proper seeding (1 vs last, 2 vs second-last, etc.)"""
+    matches = []
+    participants = participant_ids.copy()  # Already ordered by seed
+    
+    n = len(participants)
+    rounds = math.ceil(math.log2(n)) if n > 1 else 1
+    bracket_size = 2 ** rounds
+    
+    # Add byes at the end
+    byes_needed = bracket_size - n
+    participants.extend([None] * byes_needed)
+    
+    # Create seeded bracket order (1 vs 16, 8 vs 9, 5 vs 12, 4 vs 13, etc. for 16 players)
+    seeded_order = create_seeded_bracket_order(len(participants))
+    ordered_participants = [participants[i] if i < len(participants) else None for i in seeded_order]
+    
+    match_number = 1
+    current_round_matches = []
+    all_matches = []
+    
+    # First round
+    for i in range(0, len(ordered_participants), 2):
+        match_id = str(uuid.uuid4())
+        match = {
+            "id": match_id,
+            "tournament_id": tournament_id,
+            "competition_id": competition_id,
+            "round_number": 1 + round_offset,
+            "match_number": match_number,
+            "group_number": None,
+            "participant1_id": ordered_participants[i],
+            "participant2_id": ordered_participants[i+1] if i+1 < len(ordered_participants) else None,
+            "seed1": seeded_order[i] + 1 if seeded_order[i] < n else None,
+            "seed2": seeded_order[i+1] + 1 if i+1 < len(seeded_order) and seeded_order[i+1] < n else None,
+            "winner_id": None,
+            "resource_id": None,
+            "scheduled_time": None,
+            "status": "pending",
+            "scores": [],
+            "bracket_position": f"R{1 + round_offset}-M{match_number}",
+            "next_match_id": None,
+            "created_at": now
+        }
+        
+        # Auto-advance byes
+        if match["participant2_id"] is None and match["participant1_id"]:
+            match["winner_id"] = match["participant1_id"]
+            match["status"] = "completed"
+        elif match["participant1_id"] is None and match["participant2_id"]:
+            match["winner_id"] = match["participant2_id"]
+            match["status"] = "completed"
+        
+        all_matches.append(match)
+        current_round_matches.append(match)
+        match_number += 1
+    
+    # Subsequent rounds
+    for round_num in range(2, rounds + 1):
+        prev_round_matches = current_round_matches
+        current_round_matches = []
+        
+        for i in range(0, len(prev_round_matches), 2):
+            match_id = str(uuid.uuid4())
+            match = {
+                "id": match_id,
+                "tournament_id": tournament_id,
+                "competition_id": competition_id,
+                "round_number": round_num + round_offset,
+                "match_number": match_number,
+                "group_number": None,
+                "participant1_id": None,
+                "participant2_id": None,
+                "winner_id": None,
+                "resource_id": None,
+                "scheduled_time": None,
+                "status": "pending",
+                "scores": [],
+                "bracket_position": f"R{round_num + round_offset}-M{match_number}",
+                "next_match_id": None,
+                "created_at": now
+            }
+            
+            # Link previous matches and auto-advance winners from byes
+            if i < len(prev_round_matches):
+                prev_round_matches[i]["next_match_id"] = match_id
+                if prev_round_matches[i]["winner_id"]:
+                    match["participant1_id"] = prev_round_matches[i]["winner_id"]
+            if i + 1 < len(prev_round_matches):
+                prev_round_matches[i + 1]["next_match_id"] = match_id
+                if prev_round_matches[i + 1]["winner_id"]:
+                    match["participant2_id"] = prev_round_matches[i + 1]["winner_id"]
+            
+            all_matches.append(match)
+            current_round_matches.append(match)
+            match_number += 1
+    
+    return all_matches
+
+def create_seeded_bracket_order(size: int) -> List[int]:
+    """Create bracket order that puts 1 vs last, 2 vs second-last, etc."""
+    if size <= 1:
+        return [0]
+    if size == 2:
+        return [0, 1]
+    
+    # Recursively build bracket
+    half = size // 2
+    top_half = create_seeded_bracket_order(half)
+    bottom_half = [size - 1 - i for i in top_half]
+    
+    result = []
+    for i in range(half):
+        result.append(top_half[i])
+        result.append(bottom_half[i])
+    
+    return result
+
+def generate_groups_knockout_seeded(participant_ids: List[str], competition_id: str, tournament_id: str, num_groups: int, now: str) -> List[dict]:
+    """Generate group stage with seeded distribution (snake draft style)"""
+    matches = []
+    participants = participant_ids.copy()  # Already ordered by seed
+    
+    # Distribute participants to groups using snake draft
+    groups = [[] for _ in range(num_groups)]
+    direction = 1
+    group_idx = 0
+    
+    for participant in participants:
+        groups[group_idx].append(participant)
+        
+        # Snake draft
+        group_idx += direction
+        if group_idx >= num_groups:
+            group_idx = num_groups - 1
+            direction = -1
+        elif group_idx < 0:
+            group_idx = 0
+            direction = 1
+    
+    match_number = 1
+    
+    # Generate round-robin matches within each group
+    for group_num, group_participants in enumerate(groups, 1):
+        n = len(group_participants)
+        for i in range(n):
+            for j in range(i + 1, n):
+                match_id = str(uuid.uuid4())
+                match = {
+                    "id": match_id,
+                    "tournament_id": tournament_id,
+                    "competition_id": competition_id,
+                    "round_number": 1,
+                    "match_number": match_number,
+                    "group_number": group_num,
+                    "participant1_id": group_participants[i],
+                    "participant2_id": group_participants[j],
+                    "winner_id": None,
+                    "resource_id": None,
+                    "scheduled_time": None,
+                    "status": "pending",
+                    "scores": [],
+                    "bracket_position": f"G{group_num}-M{match_number}",
+                    "bracket_type": "group",
+                    "next_match_id": None,
+                    "created_at": now
+                }
+                matches.append(match)
+                match_number += 1
+    
+    return matches
+
 def generate_single_elimination_matches(participant_ids: List[str], competition_id: str, tournament_id: str, now: str, round_offset: int = 0) -> List[dict]:
     matches = []
     participants = participant_ids.copy()
