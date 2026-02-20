@@ -322,6 +322,16 @@ async def get_player(player_id: str, current_user: dict = Depends(get_current_us
     player = await db.players.find_one({"id": player_id}, {"_id": 0, "created_by": 0})
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
+    # Handle old format
+    if "name" in player and "first_name" not in player:
+        parts = player["name"].split(" ", 1)
+        player["first_name"] = parts[0]
+        player["last_name"] = parts[1] if len(parts) > 1 else ""
+    player.setdefault("first_name", "")
+    player.setdefault("last_name", "")
+    player.setdefault("gender", None)
+    player.setdefault("age", None)
+    player.setdefault("team", None)
     return PlayerResponse(**player)
 
 @api_router.put("/players/{player_id}", response_model=PlayerResponse)
