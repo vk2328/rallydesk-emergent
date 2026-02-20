@@ -22,6 +22,7 @@ import Standings from "./pages/Standings";
 import Leaderboard from "./pages/Leaderboard";
 import AuthCallback from "./pages/AuthCallback";
 import LiveMatchCenter from "./pages/LiveMatchCenter";
+import RefereeScoring from "./pages/RefereeScoring";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
