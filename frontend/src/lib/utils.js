@@ -59,6 +59,20 @@ export const formatFormat = (format) => {
   return info ? info.label : format?.replace('_', ' ');
 };
 
+export const formatMatchType = (matchType) => {
+  const types = {
+    'single': 'Singles',
+    'singles': 'Singles',
+    'pair': 'Doubles',
+    'pairs': 'Doubles',
+    'double': 'Doubles',
+    'doubles': 'Doubles',
+    'team': 'Team',
+    'teams': 'Team',
+  };
+  return types[matchType] || matchType?.replace('_', ' ') || 'Singles';
+};
+
 export const formatStatus = (status) => {
   switch (status) {
     case 'draft': return 'Draft';
