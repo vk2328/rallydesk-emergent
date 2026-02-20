@@ -795,6 +795,40 @@ async def list_moderators(tournament_id: str, current_user: dict = Depends(requi
     
     return {"moderators": moderators, "owner_id": tournament.get("created_by")}
 
+@api_router.get("/tournaments/{tournament_id}/scoring-rules")
+async def get_scoring_rules(tournament_id: str, current_user: dict = Depends(require_auth)):
+    """Get scoring rules for a tournament"""
+    tournament, _ = await require_tournament_access(tournament_id, current_user)
+    settings = tournament.get("settings", {})
+    scoring_rules = settings.get("scoring_rules", DefaultScoringRules().model_dump())
+    return {"scoring_rules": scoring_rules}
+
+@api_router.put("/tournaments/{tournament_id}/scoring-rules/{sport}")
+async def update_sport_scoring_rules(
+    tournament_id: str, 
+    sport: str, 
+    rules: SportScoringRules, 
+    current_user: dict = Depends(require_auth)
+):
+    """Update scoring rules for a specific sport in a tournament"""
+    await require_tournament_access(tournament_id, current_user)
+    
+    if sport not in SPORTS:
+        raise HTTPException(status_code=400, detail=f"Invalid sport. Must be one of: {SPORTS}")
+    
+    # Update the specific sport's scoring rules
+    await db.tournaments.update_one(
+        {"id": tournament_id},
+        {"$set": {f"settings.scoring_rules.{sport}": rules.model_dump()}}
+    )
+    
+    return {"message": f"Scoring rules updated for {sport.replace('_', ' ').title()}"}
+
+@api_router.get("/default-scoring-rules")
+async def get_default_scoring_rules():
+    """Get default scoring rules for all sports (no auth required)"""
+    return DefaultScoringRules().model_dump()
+
 @api_router.get("/users/search")
 async def search_users(q: str, current_user: dict = Depends(require_auth)):
     """Search users by username or email (for adding moderators)"""
