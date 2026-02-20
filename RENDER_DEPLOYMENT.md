@@ -199,6 +199,47 @@ For better performance:
 
 ## Troubleshooting
 
+### MongoDB Connection Errors
+
+#### SSL Handshake Failed / TLS Error
+```
+pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed
+```
+**Solutions:**
+1. **Whitelist IPs in MongoDB Atlas:**
+   - Go to **Network Access** → **Add IP Address**
+   - Click **Allow Access from Anywhere** (`0.0.0.0/0`)
+   
+2. **Update connection string** to include SSL parameters:
+   ```
+   mongodb+srv://user:pass@cluster.mongodb.net/rallydesk?retryWrites=true&w=majority&tls=true
+   ```
+
+3. **Check password** - avoid special characters (`@`, `%`, `/`, `#`) or URL-encode them
+
+#### Connection Timeout
+```
+pymongo.errors.ServerSelectionTimeoutError: Timeout: 30s
+```
+**Solutions:**
+1. Verify **Network Access** allows `0.0.0.0/0`
+2. Check username/password are correct
+3. Ensure cluster is running (not paused)
+
+### CORS Errors (OPTIONS 400 Bad Request)
+
+```
+OPTIONS /api/auth/login HTTP/1.1" 400 Bad Request
+```
+**Solutions:**
+1. Verify `CORS_ORIGINS` environment variable is set correctly:
+   ```
+   CORS_ORIGINS=https://rallydesk.app,https://www.rallydesk.app
+   ```
+2. Include both root domain and www subdomain
+3. No trailing slashes in URLs
+4. Redeploy backend after changing environment variables
+
 ### Backend won't start
 - Check Render logs for errors
 - Verify MONGO_URL is correct
@@ -206,13 +247,15 @@ For better performance:
 
 ### Frontend API calls fail
 - Check CORS_ORIGINS includes your frontend URL
-- Verify REACT_APP_BACKEND_URL is correct
+- Verify REACT_APP_BACKEND_URL is correct (e.g., `https://api.rallydesk.app`)
 - Check browser console for errors
+- Clear browser cache
 
 ### Google OAuth fails
 - Verify redirect URI matches exactly
 - Check GOOGLE_CLIENT_ID and SECRET are correct
 - Ensure OAuth consent screen is configured
+- Update authorized origins to include your custom domain
 
 ---
 
