@@ -59,6 +59,12 @@ MONGO_URL=mongodb://localhost:27017
 DB_NAME=rallydesk
 JWT_SECRET=your-secret-key-here-minimum-32-characters
 CORS_ORIGINS=http://localhost:3000
+
+# Optional: Mailjet for email verification
+MJ_APIKEY_PUBLIC=your-mailjet-public-key
+MJ_APIKEY_PRIVATE=your-mailjet-private-key
+MJ_FROM_EMAIL=noreply@yourdomain.com
+EMAIL_FROM_NAME=Rally Desk
 EOF
 
 # Run server
@@ -76,6 +82,9 @@ yarn install
 # Create .env file
 cat > .env << EOF
 REACT_APP_BACKEND_URL=http://localhost:8001
+
+# Optional: Facebook OAuth
+REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
 EOF
 
 # Run development server
