@@ -299,7 +299,23 @@ async def get_players(sport: Optional[str] = None, current_user: dict = Depends(
     if sport:
         query["sport"] = sport
     players = await db.players.find(query, {"_id": 0, "created_by": 0}).to_list(1000)
-    return [PlayerResponse(**p) for p in players]
+    
+    # Handle both old and new player formats
+    result = []
+    for p in players:
+        # If old format with 'name' field, split into first/last name
+        if "name" in p and "first_name" not in p:
+            parts = p["name"].split(" ", 1)
+            p["first_name"] = parts[0]
+            p["last_name"] = parts[1] if len(parts) > 1 else ""
+        # Ensure all required fields exist
+        p.setdefault("first_name", "")
+        p.setdefault("last_name", "")
+        p.setdefault("gender", None)
+        p.setdefault("age", None)
+        p.setdefault("team", None)
+        result.append(PlayerResponse(**p))
+    return result
 
 @api_router.get("/players/{player_id}", response_model=PlayerResponse)
 async def get_player(player_id: str, current_user: dict = Depends(get_current_user)):
