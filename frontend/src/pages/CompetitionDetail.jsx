@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { 
   ArrowLeft, Users, Trophy, Play, Plus, Grid3X3, 
   Award, ChevronRight, X, RefreshCw, Swords, Settings2,
-  ArrowUpDown, GripVertical, Check, Shuffle
+  ArrowUpDown, GripVertical, Check, Shuffle, FileDown, QrCode, AlertCircle
 } from 'lucide-react';
 
 const CompetitionDetail = () => {
