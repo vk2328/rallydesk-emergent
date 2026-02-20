@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { API_URL, formatSport, getSportColor } from '../lib/utils';
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit, Users, Trophy, Target, Search } from 'lucide-react';
+import { Plus, Trash2, Edit, Users, Trophy, Target, Search, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
 const Players = () => {
   const { getAuthHeader } = useAuth();
