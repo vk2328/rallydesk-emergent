@@ -130,6 +130,9 @@
 4. Add Environment Variables:
    ```
    REACT_APP_BACKEND_URL=https://rallydesk-api.onrender.com
+   
+   # Facebook OAuth (optional)
+   REACT_APP_FACEBOOK_APP_ID=<your-facebook-app-id>
    ```
 
 5. Click "Create Static Site"
