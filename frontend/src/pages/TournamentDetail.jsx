@@ -520,6 +520,7 @@ const TournamentDetail = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                </div>
               )}
             </CardHeader>
             <CardContent>
