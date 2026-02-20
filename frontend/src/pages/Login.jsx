@@ -131,7 +131,7 @@ const Login = () => {
               <form onSubmit={handleRegister}>
                 <CardHeader>
                   <CardTitle className="font-heading uppercase tracking-tight">Create Account</CardTitle>
-                  <CardDescription>Join The Arena today</CardDescription>
+                  <CardDescription>Join RallyDesk today</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
