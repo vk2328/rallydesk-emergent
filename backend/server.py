@@ -560,11 +560,8 @@ async def update_profile(display_name: Optional[str] = None, current_user: dict 
 
 @api_router.put("/admin/users/{user_id}/role")
 async def update_user_role(user_id: str, role: str, current_user: dict = Depends(require_auth)):
-    await require_tournament_access(tournament_id, current_user)
-    if role not in ROLES:
-        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {ROLES}")
-    await db.users.update_one({"id": user_id}, {"$set": {"role": role}})
-    return {"message": f"User role updated to {role}"}
+    # This endpoint is deprecated in SaaS mode - use tournament moderators instead
+    raise HTTPException(status_code=403, detail="Global role changes are not allowed in SaaS mode. Use tournament moderators instead.")
 
 # ============== GOOGLE OAUTH ROUTES ==============
 
