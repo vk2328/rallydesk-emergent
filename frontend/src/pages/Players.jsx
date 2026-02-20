@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit, Users, Trophy, Target, Search, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import { Plus, Trash2, Edit, Users, Search, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
 const Players = () => {
   const { getAuthHeader } = useAuth();
@@ -27,11 +27,15 @@ const Players = () => {
   const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
+    gender: '',
+    age: '',
+    skill_level: 'intermediate',
     sport: 'table_tennis',
-    skill_level: 'intermediate'
+    team: ''
   });
 
   useEffect(() => {
@@ -54,34 +58,59 @@ const Players = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        age: formData.age ? parseInt(formData.age) : null,
+        gender: formData.gender || null,
+        team: formData.team || null
+      };
+      
       if (editingPlayer) {
-        await axios.put(`${API_URL}/players/${editingPlayer.id}`, formData, {
+        await axios.put(`${API_URL}/players/${editingPlayer.id}`, payload, {
           headers: getAuthHeader()
         });
         toast.success('Player updated successfully');
       } else {
-        await axios.post(`${API_URL}/players`, formData, {
+        await axios.post(`${API_URL}/players`, payload, {
           headers: getAuthHeader()
         });
         toast.success('Player created successfully');
       }
       setIsDialogOpen(false);
       setEditingPlayer(null);
-      setFormData({ name: '', email: '', phone: '', sport: 'table_tennis', skill_level: 'intermediate' });
+      resetForm();
       fetchPlayers();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Operation failed');
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      gender: '',
+      age: '',
+      skill_level: 'intermediate',
+      sport: 'table_tennis',
+      team: ''
+    });
+  };
+
   const handleEdit = (player) => {
     setEditingPlayer(player);
     setFormData({
-      name: player.name,
+      first_name: player.first_name || '',
+      last_name: player.last_name || '',
       email: player.email || '',
       phone: player.phone || '',
+      gender: player.gender || '',
+      age: player.age ? player.age.toString() : '',
+      skill_level: player.skill_level || 'intermediate',
       sport: player.sport,
-      skill_level: player.skill_level
+      team: player.team || ''
     });
     setIsDialogOpen(true);
   };
@@ -129,11 +158,11 @@ const Players = () => {
     }
     
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    const uploadData = new FormData();
+    uploadData.append('file', file);
     
     try {
-      const response = await axios.post(`${API_URL}/players/csv/upload`, formData, {
+      const response = await axios.post(`${API_URL}/players/csv/upload`, uploadData, {
         headers: {
           ...getAuthHeader(),
           'Content-Type': 'multipart/form-data'
@@ -164,8 +193,16 @@ const Players = () => {
     }
   };
 
+  const getPlayerName = (player) => {
+    if (player.first_name && player.last_name) {
+      return `${player.first_name} ${player.last_name}`;
+    }
+    return player.name || 'Unknown';
+  };
+
   const filteredPlayers = players.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const fullName = getPlayerName(player).toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
                          (player.email && player.email.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesSport = sportFilter === 'all' || player.sport === sportFilter;
     return matchesSearch && matchesSport;
@@ -177,6 +214,14 @@ const Players = () => {
       case 'intermediate': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'advanced': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
       case 'pro': return 'bg-table-tennis/20 text-table-tennis border-table-tennis/30';
+      default: return 'bg-zinc-700 text-zinc-300';
+    }
+  };
+
+  const getGenderBadgeColor = (gender) => {
+    switch (gender) {
+      case 'male': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'female': return 'bg-pink-500/20 text-pink-400 border-pink-500/30';
       default: return 'bg-zinc-700 text-zinc-300';
     }
   };
@@ -245,10 +290,11 @@ const Players = () => {
                 <div className="bg-muted/30 rounded-lg p-4">
                   <h4 className="font-semibold text-sm mb-2">CSV Format Requirements:</h4>
                   <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Headers: name, email, phone, sport, skill_level</li>
+                    <li>• Headers: firstName, lastName, email, phone, gender, age, skillLevel, sport, team</li>
                     <li>• Sport: "table_tennis" or "badminton"</li>
                     <li>• Skill: "beginner", "intermediate", "advanced", "pro"</li>
-                    <li>• Name is required, other fields are optional</li>
+                    <li>• Gender: "male", "female", "other"</li>
+                    <li>• First name and last name are required</li>
                   </ul>
                 </div>
                 <Button
@@ -269,7 +315,7 @@ const Players = () => {
             setIsDialogOpen(open);
             if (!open) {
               setEditingPlayer(null);
-              setFormData({ name: '', email: '', phone: '', sport: 'table_tennis', skill_level: 'intermediate' });
+              resetForm();
             }
           }}>
             <DialogTrigger asChild>
@@ -278,82 +324,136 @@ const Players = () => {
                 Add Player
               </Button>
             </DialogTrigger>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="font-heading uppercase">
-                {editingPlayer ? 'Edit Player' : 'Add New Player'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingPlayer ? 'Update player information' : 'Register a new player'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  data-testid="player-name-input"
-                  className="bg-background/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  data-testid="player-email-input"
-                  className="bg-background/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  data-testid="player-phone-input"
-                  className="bg-background/50"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sport">Sport *</Label>
-                  <Select value={formData.sport} onValueChange={(v) => setFormData({ ...formData, sport: v })}>
-                    <SelectTrigger data-testid="player-sport-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="table_tennis">🏓 Table Tennis</SelectItem>
-                      <SelectItem value="badminton">🏸 Badminton</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <DialogContent className="bg-card border-border max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="font-heading uppercase">
+                  {editingPlayer ? 'Edit Player' : 'Add New Player'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingPlayer ? 'Update player information' : 'Register a new player'}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_name">First Name *</Label>
+                    <Input
+                      id="first_name"
+                      value={formData.first_name}
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      required
+                      data-testid="player-firstname-input"
+                      className="bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name">Last Name *</Label>
+                    <Input
+                      id="last_name"
+                      value={formData.last_name}
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      required
+                      data-testid="player-lastname-input"
+                      className="bg-background/50"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="skill">Skill Level</Label>
-                  <Select value={formData.skill_level} onValueChange={(v) => setFormData({ ...formData, skill_level: v })}>
-                    <SelectTrigger data-testid="player-skill-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="beginner">Beginner</SelectItem>
-                      <SelectItem value="intermediate">Intermediate</SelectItem>
-                      <SelectItem value="advanced">Advanced</SelectItem>
-                      <SelectItem value="pro">Pro</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      data-testid="player-email-input"
+                      className="bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      data-testid="player-phone-input"
+                      className="bg-background/50"
+                    />
+                  </div>
                 </div>
-              </div>
-              <Button type="submit" className="w-full font-bold uppercase" data-testid="player-submit-btn">
-                {editingPlayer ? 'Update Player' : 'Add Player'}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select value={formData.gender} onValueChange={(v) => setFormData({ ...formData, gender: v })}>
+                      <SelectTrigger data-testid="player-gender-select">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      min="5"
+                      max="100"
+                      value={formData.age}
+                      onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                      data-testid="player-age-input"
+                      className="bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="skill">Skill Level</Label>
+                    <Select value={formData.skill_level} onValueChange={(v) => setFormData({ ...formData, skill_level: v })}>
+                      <SelectTrigger data-testid="player-skill-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                        <SelectItem value="pro">Pro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sport">Sport *</Label>
+                    <Select value={formData.sport} onValueChange={(v) => setFormData({ ...formData, sport: v })}>
+                      <SelectTrigger data-testid="player-sport-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="table_tennis">🏓 Table Tennis</SelectItem>
+                        <SelectItem value="badminton">🏸 Badminton</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="team">Team</Label>
+                    <Input
+                      id="team"
+                      value={formData.team}
+                      onChange={(e) => setFormData({ ...formData, team: e.target.value })}
+                      placeholder="Team name"
+                      data-testid="player-team-input"
+                      className="bg-background/50"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full font-bold uppercase" data-testid="player-submit-btn">
+                  {editingPlayer ? 'Update Player' : 'Add Player'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -399,12 +499,14 @@ const Players = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/40">
-                    <TableHead>Player</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>Sport</TableHead>
+                    <TableHead>Gender</TableHead>
+                    <TableHead>Age</TableHead>
                     <TableHead>Skill</TableHead>
+                    <TableHead>Team</TableHead>
                     <TableHead className="text-center">W</TableHead>
                     <TableHead className="text-center">L</TableHead>
-                    <TableHead className="text-center">Played</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -413,7 +515,7 @@ const Players = () => {
                     <TableRow key={player.id} className="border-border/40" data-testid={`player-row-${player.id}`}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{player.name}</p>
+                          <p className="font-medium">{getPlayerName(player)}</p>
                           {player.email && (
                             <p className="text-sm text-muted-foreground">{player.email}</p>
                           )}
@@ -425,18 +527,30 @@ const Players = () => {
                         </span>
                       </TableCell>
                       <TableCell>
+                        {player.gender && (
+                          <Badge variant="outline" className={getGenderBadgeColor(player.gender)}>
+                            {player.gender}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {player.age && <span className="font-teko text-xl">{player.age}</span>}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="outline" className={getSkillBadgeColor(player.skill_level)}>
                           {player.skill_level}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {player.team && (
+                          <span className="text-sm text-muted-foreground">{player.team}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center font-teko text-2xl text-green-400">
                         {player.wins}
                       </TableCell>
                       <TableCell className="text-center font-teko text-2xl text-red-400">
                         {player.losses}
-                      </TableCell>
-                      <TableCell className="text-center font-teko text-2xl">
-                        {player.matches_played}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
