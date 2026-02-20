@@ -156,6 +156,7 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 ### Dashboard
 - `GET /api/stats/dashboard` - Global dashboard stats
 - `GET /api/tournaments/{id}/stats` - Tournament stats
+- `GET /api/live-match-center` - **Live match center data (public, no auth)**
 
 ## Frontend Routes
 
