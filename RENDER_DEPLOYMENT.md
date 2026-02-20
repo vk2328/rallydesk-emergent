@@ -441,8 +441,9 @@ REACT_APP_BACKEND_URL=https://api.rallydesk.app
 REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
 ```
 
-### Step 5: Update Google OAuth for Custom Domain
+### Step 5: Update OAuth Providers for Custom Domain
 
+#### Google OAuth (if using):
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Navigate to **APIs & Services** → **Credentials**
 3. Edit your OAuth 2.0 Client
@@ -451,6 +452,14 @@ REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
    - `https://www.rallydesk.app`
 5. Update **Authorized redirect URIs**:
    - `https://api.rallydesk.app/api/auth/google/callback`
+
+#### Facebook OAuth (if using):
+1. Go to [Facebook Developers](https://developers.facebook.com)
+2. Select your app → **Facebook Login** → **Settings**
+3. Update **Valid OAuth Redirect URIs**:
+   - `https://rallydesk.app/dashboard`
+   - `https://www.rallydesk.app/dashboard`
+4. Add your domain to **App Domains** in **Settings** → **Basic**
 
 ### DNS Propagation Timeline
 - **Typical:** 5-30 minutes
