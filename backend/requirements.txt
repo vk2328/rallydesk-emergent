@@ -24,3 +24,8 @@ python-multipart>=0.0.9
 
 # Timezone support
 tzdata>=2024.2
+
+# QR Code & PDF generation
+qrcode[pil]>=7.4.2
+reportlab>=4.0.0
+pillow>=10.0.0
