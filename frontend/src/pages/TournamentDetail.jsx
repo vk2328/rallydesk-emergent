@@ -662,14 +662,14 @@ const TournamentDetail = () => {
                         <div className="space-y-2">
                           <Label>Division</Label>
                           <Select 
-                            value={newPlayer.division_id || ''} 
-                            onValueChange={(v) => setNewPlayer({ ...newPlayer, division_id: v })}
+                            value={newPlayer.division_id || 'none'} 
+                            onValueChange={(v) => setNewPlayer({ ...newPlayer, division_id: v === 'none' ? '' : v })}
                           >
                             <SelectTrigger data-testid="player-division-select">
                               <SelectValue placeholder="Select division (optional)" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">No division</SelectItem>
+                              <SelectItem value="none">No division</SelectItem>
                               {divisions.map((d) => (
                                 <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                               ))}
