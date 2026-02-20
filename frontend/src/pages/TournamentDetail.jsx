@@ -1440,6 +1440,156 @@ const TournamentDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Division Dialog */}
+      <Dialog open={!!editingDivision} onOpenChange={() => setEditingDivision(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase">Edit Division</DialogTitle>
+            <DialogDescription>Update division details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                placeholder="e.g., Men's Open, Women's U18"
+                value={editDivisionForm.name}
+                onChange={(e) => setEditDivisionForm({ ...editDivisionForm, name: e.target.value })}
+                data-testid="edit-division-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (Optional)</Label>
+              <Textarea
+                placeholder="Division description or rules..."
+                value={editDivisionForm.description}
+                onChange={(e) => setEditDivisionForm({ ...editDivisionForm, description: e.target.value })}
+                data-testid="edit-division-description"
+              />
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={handleUpdateDivision}
+              disabled={!editDivisionForm.name}
+              data-testid="save-division-btn"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Resource Dialog */}
+      <Dialog open={!!editingResource} onOpenChange={() => setEditingResource(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase">Edit Resource</DialogTitle>
+            <DialogDescription>Update court/table details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                placeholder="e.g., Court 1, Table A"
+                value={editResourceForm.name}
+                onChange={(e) => setEditResourceForm({ ...editResourceForm, name: e.target.value })}
+                data-testid="edit-resource-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Sport</Label>
+              <Select
+                value={editResourceForm.sport}
+                onValueChange={(value) => setEditResourceForm({ ...editResourceForm, sport: value })}
+              >
+                <SelectTrigger data-testid="edit-resource-sport">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SPORTS.map((sport) => (
+                    <SelectItem key={sport.value} value={sport.value}>
+                      {sport.icon} {sport.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={handleUpdateResource}
+              disabled={!editResourceForm.name}
+              data-testid="save-resource-btn"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Competition Dialog */}
+      <Dialog open={!!editingCompetition} onOpenChange={() => setEditingCompetition(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase">Edit Competition</DialogTitle>
+            <DialogDescription>Update competition details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                placeholder="e.g., Singles Championship"
+                value={editCompetitionForm.name}
+                onChange={(e) => setEditCompetitionForm({ ...editCompetitionForm, name: e.target.value })}
+                data-testid="edit-competition-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Format</Label>
+              <Select
+                value={editCompetitionForm.format}
+                onValueChange={(value) => setEditCompetitionForm({ ...editCompetitionForm, format: value })}
+              >
+                <SelectTrigger data-testid="edit-competition-format">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FORMATS.map((format) => (
+                    <SelectItem key={format.value} value={format.value}>
+                      {format.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Participant Type</Label>
+              <Select
+                value={editCompetitionForm.participant_type}
+                onValueChange={(value) => setEditCompetitionForm({ ...editCompetitionForm, participant_type: value })}
+              >
+                <SelectTrigger data-testid="edit-competition-participant-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PARTICIPANT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={handleUpdateCompetition}
+              disabled={!editCompetitionForm.name}
+              data-testid="save-competition-btn"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
