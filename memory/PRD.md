@@ -144,5 +144,13 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - API endpoints: `/api/tournaments/{id}/moderators`, `/api/users/search`
 - Removed global role-based permissions in favor of per-tournament access
 
+## Configurable Scoring Rules (Feb 2025)
+- **Per-tournament, per-sport scoring rules**
+- Configure: Sets to win, Points per set, Win by margin, Max points cap
+- Default rules for all 5 sports (can be customized per tournament)
+- API endpoints: `/api/tournaments/{id}/scoring-rules`, `/api/tournaments/{id}/scoring-rules/{sport}`
+- Frontend UI in Tournament Settings tab with Edit dialog
+
 ## Project Health
 Application is stable. SaaS multi-tenant model implemented Feb 2025.
+Configurable scoring rules added Feb 2025.
