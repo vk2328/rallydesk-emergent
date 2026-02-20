@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Skeleton } from '../components/ui/skeleton';
+import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, Calendar, MapPin, Users, Trophy, Play, 
-  Plus, Settings, Grid3X3, ChevronRight, Trash2, Upload, BarChart3, Monitor, ExternalLink
+  Plus, Settings, Grid3X3, ChevronRight, Trash2, Upload, BarChart3, Monitor, ExternalLink, Layers, Edit
 } from 'lucide-react';
 
 const TournamentDetail = () => {
