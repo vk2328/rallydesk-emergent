@@ -33,8 +33,23 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - [x] Live Match Center (public dashboard, no login required)
 - [x] Google OAuth Integration
 
+### Division Management (COMPLETE - Dec 2024)
+- [x] Division CRUD - Create, list, delete custom divisions (Open, Men's, Women's, Mixed, U18, etc.)
+- [x] Players assigned to divisions (division_id field)
+- [x] Division filter on Players tab
+- [x] Division selection when adding players manually
+- [x] Division badge displayed on player cards
+
+### CSV Player Import (COMPLETE - Dec 2024)
+- [x] Enhanced CSV template with team, division, sports columns
+- [x] Default division selector on import page
+- [x] **Team Auto-Creation**: If CSV has 'team' column, teams are automatically created
+- [x] **Division Auto-Creation**: If CSV has 'division' column, divisions are auto-created
+- [x] Import result shows: players created, teams created, divisions created
+- [x] Format guide explaining all columns and auto-creation behavior
+
 ### UI/UX Enhancements (COMPLETE - Dec 2024)
-- [x] Dark/Light Theme Toggle - Added Dec 2024
+- [x] Dark/Light Theme Toggle
   - ThemeContext.js with localStorage persistence
   - Theme toggle button in header (Sun/Moon icons)
   - Light mode CSS variables in index.css
@@ -53,18 +68,13 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 1. **Facebook Login Integration**
    - Required by PRD
    - Needs `integration_playbook_expert_v2` subagent
-   
-2. **CSV Player Import Frontend**
-   - Backend API exists
-   - UI page exists (PlayerImport.jsx)
-   - Needs file upload form integration
 
 ### P2 - Medium Priority
-3. **Data Export Functionality**
+2. **Data Export Functionality**
    - Export tournament results to CSV/JSON
    - Export player data
 
-4. **Player Profiles & Match History**
+3. **Player Profiles & Match History**
    - Public player profile pages
    - Stats and match history across tournaments
 
@@ -78,26 +88,21 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - **Database**: MongoDB
 - **Authentication**: JWT + Google OAuth
 
-### Key Files
-- `/app/frontend/src/context/ThemeContext.js` - Theme management
-- `/app/frontend/src/components/Layout.jsx` - Main layout with theme toggle
-- `/app/frontend/src/index.css` - CSS variables for dark/light modes
-- `/app/backend/server.py` - Main API server
-- `/app/backend/routers/auth.py` - Authentication routes
+### Key API Endpoints
+- `/api/tournaments/{id}/divisions` - Division CRUD
+- `/api/tournaments/{id}/players?division_id={id}` - Filter players by division
+- `/api/tournaments/{id}/players/csv/upload?division_id={id}` - CSV import with default division
 
-### API Endpoints
-- `/api/auth/*` - Authentication
-- `/api/tournaments/*` - Tournament management
-- `/api/players/` - Global players
-- `/api/resources/` - Global resources
-- `/api/teams/` - Global teams
-- `/api/stats/live-match-center` - Public live match data
+### Database Schema Updates
+- **players** collection: Added `division_id` field
+- **divisions** collection: `{id, tournament_id, name, description, eligibility, created_at}`
 
 ---
 
 ## Test Reports
 - `/app/test_reports/iteration_1.json`
 - `/app/test_reports/iteration_2.json`
+- `/app/test_reports/iteration_3.json` - Division & CSV import tests (100% pass rate)
 
 ## Project Health
-Application is stable with all core features working. Theme toggle verified working on Dec 2024.
+Application is stable. All division features tested and working as of Dec 2024.
