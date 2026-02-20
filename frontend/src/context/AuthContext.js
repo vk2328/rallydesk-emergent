@@ -79,6 +79,17 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const loginWithFacebook = async (facebookAccessToken) => {
+    const response = await axios.post(`${API_URL}/auth/facebook/callback`, {
+      access_token: facebookAccessToken
+    });
+    const { access_token, user: userData } = response.data;
+    localStorage.setItem('rallydesk_token', access_token);
+    setToken(access_token);
+    setUser(userData);
+    return response.data;
+  };
+
   const logout = () => {
     localStorage.removeItem('rallydesk_token');
     setToken(null);
