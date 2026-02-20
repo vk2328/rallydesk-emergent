@@ -94,7 +94,7 @@ const Login = () => {
                     <Input
                       id="login-email"
                       type="email"
-                      placeholder="player@arena.com"
+                      placeholder="player@rallydesk.com"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
@@ -152,7 +152,7 @@ const Login = () => {
                     <Input
                       id="register-email"
                       type="email"
-                      placeholder="player@arena.com"
+                      placeholder="player@rallydesk.com"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       required
