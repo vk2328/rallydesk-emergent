@@ -202,19 +202,82 @@ const Players = () => {
             Manage your tournament players
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) {
-            setEditingPlayer(null);
-            setFormData({ name: '', email: '', phone: '', sport: 'table_tennis', skill_level: 'intermediate' });
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button className="font-bold uppercase tracking-wider" data-testid="add-player-btn">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Player
-            </Button>
-          </DialogTrigger>
+        <div className="flex flex-wrap gap-2">
+          {/* CSV Upload Dialog */}
+          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="upload-csv-btn">
+                <Upload className="w-4 h-4 mr-2" />
+                Import CSV
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border">
+              <DialogHeader>
+                <DialogTitle className="font-heading uppercase">Import Players from CSV</DialogTitle>
+                <DialogDescription>
+                  Upload a CSV file to bulk import players
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                  <FileSpreadsheet className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select a CSV file with player data
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="csv-upload"
+                    data-testid="csv-file-input"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    data-testid="select-csv-btn"
+                  >
+                    {uploading ? 'Uploading...' : 'Select CSV File'}
+                  </Button>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <h4 className="font-semibold text-sm mb-2">CSV Format Requirements:</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Headers: name, email, phone, sport, skill_level</li>
+                    <li>• Sport: "table_tennis" or "badminton"</li>
+                    <li>• Skill: "beginner", "intermediate", "advanced", "pro"</li>
+                    <li>• Name is required, other fields are optional</li>
+                  </ul>
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={handleDownloadSample}
+                  data-testid="download-sample-btn"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Sample CSV
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Add Player Dialog */}
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setEditingPlayer(null);
+              setFormData({ name: '', email: '', phone: '', sport: 'table_tennis', skill_level: 'intermediate' });
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button className="font-bold uppercase tracking-wider" data-testid="add-player-btn">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Player
+              </Button>
+            </DialogTrigger>
           <DialogContent className="bg-card border-border">
             <DialogHeader>
               <DialogTitle className="font-heading uppercase">
