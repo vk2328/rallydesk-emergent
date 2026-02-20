@@ -116,6 +116,7 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+    turnstile_token: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: str
