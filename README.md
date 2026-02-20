@@ -6,14 +6,24 @@ A comprehensive tournament management platform supporting Table Tennis, Badminto
 
 ## Features
 
+### Core Features
 - **Multi-Sport Support**: 5 racquet/net sports in one platform
 - **Division Management**: Create custom divisions (Open, Men's, Women's, Mixed, U18, etc.)
 - **Player Management**: Manual entry or CSV bulk import with automatic team creation
 - **Draw Generation**: Random, rating-based, or manual seeding with bracket editing
 - **Live Scoring**: Real-time match scoreboard with public display
 - **Public Live Match Center**: No login required for spectators
-- **Role-Based Access**: Admin, Scorekeeper, Viewer roles
-- **Authentication**: Email/password + Google OAuth
+
+### Tournament Management
+- **Configurable Scoring Rules**: Customize sets and points per sport
+- **Digital Referee Scoring**: Referees can update scores via QR code/OTP access
+- **PDF Score Sheets**: Generate printable score sheets for all matches
+- **Moderator Management**: Assign co-organizers to help manage tournaments
+
+### Authentication & User Management
+- **Multiple Login Options**: Email/password, Google OAuth, Facebook OAuth
+- **Email Verification**: Mailjet-powered verification with professional emails
+- **Role-Based Access**: Organizers manage their own tournaments
 - **Dark/Light Theme**: User-selectable theme
 
 ## Tech Stack
@@ -21,7 +31,8 @@ A comprehensive tournament management platform supporting Table Tennis, Badminto
 - **Frontend**: React, Tailwind CSS, Shadcn/UI
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
-- **Authentication**: JWT + Google OAuth
+- **Authentication**: JWT + Google OAuth + Facebook OAuth
+- **Email**: Mailjet (for verification emails)
 
 ## Quick Start (Local Development)
 
