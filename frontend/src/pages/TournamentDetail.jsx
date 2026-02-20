@@ -46,6 +46,10 @@ const TournamentDetail = () => {
   
   // Filter states
   const [playerDivisionFilter, setPlayerDivisionFilter] = useState('all');
+  
+  // Scoring rules states
+  const [editingScoringRules, setEditingScoringRules] = useState(null);
+  const [scoringRulesForm, setScoringRulesForm] = useState(null);
 
   // In SaaS mode, if user can see tournament, they have access to manage it
   const isAdmin = true;  // User has access if they can fetch the tournament
@@ -53,6 +57,25 @@ const TournamentDetail = () => {
   useEffect(() => {
     fetchTournamentData();
   }, [id]);
+
+  const handleUpdateScoringRules = async () => {
+    if (!editingScoringRules) return;
+    setLoading(true);
+    try {
+      await axios.put(
+        `${API_URL}/tournaments/${id}/scoring-rules/${editingScoringRules}`,
+        scoringRulesForm,
+        { headers: getAuthHeader() }
+      );
+      toast.success(`Scoring rules updated for ${editingScoringRules.replace('_', ' ')}`);
+      setEditingScoringRules(null);
+      fetchTournamentData();
+    } catch (error) {
+      toast.error('Failed to update scoring rules');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchTournamentData = async () => {
     try {
