@@ -1674,7 +1674,6 @@ def generate_round_robin_matches(participant_ids: List[str], competition_id: str
 
 def generate_single_elimination_seeded(participant_ids: List[str], competition_id: str, tournament_id: str, now: str, round_offset: int = 0) -> List[dict]:
     """Generate single elimination bracket with proper seeding (1 vs last, 2 vs second-last, etc.)"""
-    matches = []
     participants = participant_ids.copy()  # Already ordered by seed
     
     n = len(participants)
