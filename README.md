@@ -1,1 +1,191 @@
-# Here are your Instructions
+# RallyDesk - Multi-Sport Tournament Operations Platform
+
+A comprehensive tournament management platform supporting Table Tennis, Badminton, Volleyball, Tennis, and Pickleball.
+
+## Features
+
+- **Multi-Sport Support**: 5 racquet/net sports in one platform
+- **Division Management**: Create custom divisions (Open, Men's, Women's, Mixed, U18, etc.)
+- **Player Management**: Manual entry or CSV bulk import with automatic team creation
+- **Draw Generation**: Random, rating-based, or manual seeding with bracket editing
+- **Live Scoring**: Real-time match scoreboard with public display
+- **Public Live Match Center**: No login required for spectators
+- **Role-Based Access**: Admin, Scorekeeper, Viewer roles
+- **Authentication**: Email/password + Google OAuth
+- **Dark/Light Theme**: User-selectable theme
+
+## Tech Stack
+
+- **Frontend**: React, Tailwind CSS, Shadcn/UI
+- **Backend**: FastAPI (Python)
+- **Database**: MongoDB
+- **Authentication**: JWT + Google OAuth
+
+## Quick Start (Local Development)
+
+### Prerequisites
+- Node.js 18+
+- Python 3.10+
+- MongoDB (local or Atlas)
+
+### Backend Setup
+
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create .env file
+cat > .env << EOF
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=rallydesk
+JWT_SECRET=your-secret-key-here-minimum-32-characters
+CORS_ORIGINS=http://localhost:3000
+EOF
+
+# Run server
+uvicorn server:app --reload --port 8001
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+yarn install
+
+# Create .env file
+cat > .env << EOF
+REACT_APP_BACKEND_URL=http://localhost:8001
+EOF
+
+# Run development server
+yarn start
+```
+
+### Access the App
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8001
+- API Docs: http://localhost:8001/docs
+
+## Project Structure
+
+```
+/app
+├── backend/
+│   ├── server.py           # Main FastAPI application
+│   ├── requirements.txt    # Python dependencies
+│   └── .env               # Environment variables
+├── frontend/
+│   ├── src/
+│   │   ├── pages/         # Page components
+│   │   ├── components/    # Reusable components
+│   │   │   └── ui/       # Shadcn UI components
+│   │   ├── context/       # React contexts
+│   │   └── lib/          # Utilities
+│   ├── package.json
+│   └── .env
+├── render.yaml            # Render deployment config
+├── RENDER_DEPLOYMENT.md   # Deployment guide
+└── README.md
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login
+- `GET /api/auth/me` - Get current user
+- `GET /api/auth/google/login` - Google OAuth
+
+### Tournaments
+- `GET /api/tournaments` - List tournaments
+- `POST /api/tournaments` - Create tournament
+- `GET /api/tournaments/{id}` - Get tournament
+- `PUT /api/tournaments/{id}` - Update tournament
+- `DELETE /api/tournaments/{id}` - Delete tournament
+
+### Divisions
+- `GET /api/tournaments/{id}/divisions` - List divisions
+- `POST /api/tournaments/{id}/divisions` - Create division
+- `DELETE /api/tournaments/{id}/divisions/{divId}` - Delete division
+
+### Players
+- `GET /api/tournaments/{id}/players` - List players
+- `POST /api/tournaments/{id}/players` - Add player
+- `POST /api/tournaments/{id}/players/csv/upload` - CSV import
+
+### Competitions
+- `GET /api/tournaments/{id}/competitions` - List competitions
+- `POST /api/tournaments/{id}/competitions` - Create competition
+- `POST /api/tournaments/{id}/competitions/{cid}/generate-draw-advanced` - Generate draw
+
+### Matches
+- `GET /api/tournaments/{id}/matches` - List matches
+- `PUT /api/tournaments/{id}/matches/{mid}/update-score` - Update score
+
+### Public (No Auth)
+- `GET /api/stats/live-match-center` - Live matches data
+- `GET /api/health` - Health check
+
+## Environment Variables
+
+### Backend
+| Variable | Description | Required |
+|----------|-------------|----------|
+| MONGO_URL | MongoDB connection string | Yes |
+| DB_NAME | Database name | Yes |
+| JWT_SECRET | Secret for JWT tokens | Yes |
+| CORS_ORIGINS | Allowed origins | Yes |
+| GOOGLE_CLIENT_ID | Google OAuth client ID | No |
+| GOOGLE_CLIENT_SECRET | Google OAuth secret | No |
+| GOOGLE_REDIRECT_URI | OAuth callback URL | No |
+
+### Frontend
+| Variable | Description | Required |
+|----------|-------------|----------|
+| REACT_APP_BACKEND_URL | Backend API URL | Yes |
+
+## Deployment
+
+See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for detailed deployment instructions on Render.
+
+### Quick Deploy (Free)
+1. Push to GitHub
+2. Create MongoDB Atlas free cluster
+3. Deploy backend on Render (Web Service)
+4. Deploy frontend on Render (Static Site)
+5. Configure environment variables
+
+## User Roles
+
+| Role | Permissions |
+|------|-------------|
+| Admin | Full access - manage tournaments, players, draws |
+| Scorekeeper | Update match scores, manage control desk |
+| Viewer | View tournaments, matches, standings |
+| Public | View live match center (no login) |
+
+## CSV Import Format
+
+```csv
+firstName,lastName,email,phone,gender,skillLevel,sports,rating,team,division,club
+John,Smith,john@example.com,+1234567890,male,intermediate,table_tennis,1500,Team Alpha,Open,City Club
+```
+
+- **team**: Auto-creates team if not exists
+- **division**: Auto-creates division if not exists
+
+## License
+
+MIT License
+
+## Support
+
+For issues or questions, please open a GitHub issue.
