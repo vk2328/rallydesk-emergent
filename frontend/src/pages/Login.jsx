@@ -288,7 +288,7 @@ const Login = () => {
                     {loading ? 'Creating Account...' : 'Create Account'}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
-                    First user gets Admin role. Others start as Viewer.
+                    Create and manage your own tournaments
                   </p>
                 </CardContent>
               </form>
