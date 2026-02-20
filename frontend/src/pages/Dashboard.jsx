@@ -17,9 +17,14 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { getAuthHeader } = useAuth();
+  const { user, getAuthHeader, verifyEmail, resendVerification } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [dismissedBanner, setDismissedBanner] = useState(false);
 
   useEffect(() => {
     fetchStats();
