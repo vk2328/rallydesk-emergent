@@ -72,6 +72,18 @@ const Login = () => {
     }
   };
 
+  const handleResendCode = async () => {
+    setResending(true);
+    try {
+      await resendVerification();
+      toast.success('Verification code sent! Check your email.');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to resend code');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
