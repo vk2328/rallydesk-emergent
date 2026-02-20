@@ -129,19 +129,19 @@ const LiveMatchCenter = () => {
         {liveMatches.length > 0 ? (
           <div className="mb-10">
             <div className="flex items-center gap-3 mb-6">
-              <span className="w-4 h-4 rounded-full bg-red-500 animate-pulse"></span>
+              <span className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse"></span>
               <h2 className="font-heading text-2xl uppercase font-bold">Live Matches</h2>
-              <Badge className="bg-red-500 animate-pulse">LIVE</Badge>
+              <Badge className="bg-emerald-500 animate-pulse">LIVE</Badge>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {liveMatches.map((match, idx) => (
                 <Card 
                   key={idx}
-                  className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/30 overflow-hidden hover:border-red-500/50 transition-all"
+                  className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/30 overflow-hidden hover:border-emerald-500/50 transition-all"
                   data-testid={`live-match-${idx}`}
                 >
-                  <div className="bg-red-500 text-white px-4 py-2 flex items-center justify-between">
+                  <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{getSportIcon(match.sport)}</span>
                       <span className="font-medium text-sm truncate">{match.tournament_name}</span>
@@ -155,11 +155,11 @@ const LiveMatchCenter = () => {
                     
                     {/* Player 1 */}
                     <div className={`flex items-center justify-between p-3 rounded-lg mb-2 ${
-                      match.p1_sets > match.p2_sets ? 'bg-primary/10' : 'bg-muted/30'
+                      match.p1_sets > match.p2_sets ? 'bg-emerald-500/10' : 'bg-muted/30'
                     }`}>
                       <span className="font-medium truncate flex-1">{match.participant1_name}</span>
                       <div className="flex items-center gap-3">
-                        <span className="font-teko text-3xl font-bold text-primary">{match.p1_sets || 0}</span>
+                        <span className="font-teko text-3xl font-bold text-emerald-500">{match.p1_sets || 0}</span>
                         {match.current_score && (
                           <span className="text-muted-foreground font-teko text-xl">({match.current_score.p1})</span>
                         )}
@@ -168,11 +168,11 @@ const LiveMatchCenter = () => {
                     
                     {/* Player 2 */}
                     <div className={`flex items-center justify-between p-3 rounded-lg ${
-                      match.p2_sets > match.p1_sets ? 'bg-secondary/10' : 'bg-muted/30'
+                      match.p2_sets > match.p1_sets ? 'bg-teal-500/10' : 'bg-muted/30'
                     }`}>
                       <span className="font-medium truncate flex-1">{match.participant2_name}</span>
                       <div className="flex items-center gap-3">
-                        <span className="font-teko text-3xl font-bold text-secondary">{match.p2_sets || 0}</span>
+                        <span className="font-teko text-3xl font-bold text-teal-500">{match.p2_sets || 0}</span>
                         {match.current_score && (
                           <span className="text-muted-foreground font-teko text-xl">({match.current_score.p2})</span>
                         )}
