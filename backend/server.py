@@ -99,6 +99,9 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
+    first_name: str
+    last_name: str
+    phone_number: Optional[str] = None
     display_name: Optional[str] = None
 
 class UserLogin(BaseModel):
