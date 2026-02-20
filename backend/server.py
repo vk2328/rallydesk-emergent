@@ -399,6 +399,97 @@ async def update_user_role(user_id: str, role: str, current_user: dict = Depends
     await db.users.update_one({"id": user_id}, {"$set": {"role": role}})
     return {"message": f"User role updated to {role}"}
 
+# ============== GOOGLE OAUTH ROUTES ==============
+
+@api_router.post("/auth/google/session")
+async def google_session(session_id: str, response: Response):
+    """Exchange session_id for user data and create local session"""
+    import httpx
+    
+    # Call Emergent Auth to get session data
+    async with httpx.AsyncClient() as client:
+        try:
+            auth_response = await client.get(
+                "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+                headers={"X-Session-ID": session_id}
+            )
+            if auth_response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid session")
+            
+            google_data = auth_response.json()
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=f"Failed to verify session: {str(e)}")
+    
+    email = google_data.get("email")
+    name = google_data.get("name", "")
+    picture = google_data.get("picture", "")
+    
+    # Check if user exists
+    existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if existing_user:
+        user_id = existing_user["id"]
+        # Update user data
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"display_name": name, "picture": picture}}
+        )
+    else:
+        # Create new user
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        username = email.split("@")[0] + "_" + str(uuid.uuid4())[:6]
+        
+        user_doc = {
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "display_name": name,
+            "picture": picture,
+            "password_hash": "",  # OAuth user - no password
+            "role": "viewer",
+            "auth_provider": "google",
+            "created_at": now
+        }
+        await db.users.insert_one(user_doc)
+    
+    # Create JWT token
+    token = create_access_token({"sub": user_id})
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7 * 24 * 60 * 60,
+        path="/"
+    )
+    
+    # Get full user data
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "display_name": user.get("display_name"),
+            "role": user["role"],
+            "picture": user.get("picture"),
+            "created_at": user["created_at"]
+        }
+    }
+
+@api_router.post("/auth/logout")
+async def logout(response: Response):
+    """Clear session cookie"""
+    response.delete_cookie(key="session_token", path="/")
+    return {"message": "Logged out"}
+
 # ============== TOURNAMENT ROUTES ==============
 
 @api_router.post("/tournaments", response_model=TournamentResponse)
