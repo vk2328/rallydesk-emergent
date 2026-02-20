@@ -150,6 +150,18 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 - Backend: `/app/backend/services/email_service.py` - Mailjet email service
 - Required env vars: `MJ_APIKEY_PUBLIC`, `MJ_APIKEY_PRIVATE`, `MJ_FROM_EMAIL`, `EMAIL_FROM_NAME`
 
+## Facebook OAuth (Feb 2025) - COMPLETE
+- **Backend endpoint**: `POST /api/auth/facebook/callback`
+- **Validates Facebook tokens with Graph API**
+- **Creates/links user accounts automatically**
+- **Frontend**: Facebook SDK integration with login button on Login/Register pages
+- **Conditional display**: Button only shows when `REACT_APP_FACEBOOK_APP_ID` is configured
+- **Required setup**:
+  1. Create Facebook App at developers.facebook.com
+  2. Configure OAuth redirect URIs
+  3. Set `REACT_APP_FACEBOOK_APP_ID` in frontend/.env
+- Users who login with Facebook have email_verified set to true automatically
+
 ## SaaS Multi-Tenant Model (Feb 2025)
 - **Anyone can create tournaments** - no global admin required
 - **Tournament isolation** - users only see their own tournaments
