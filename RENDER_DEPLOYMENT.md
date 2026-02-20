@@ -4,11 +4,16 @@
 
 ### ✅ Ready
 - Full-stack application (React + FastAPI + MongoDB)
-- User authentication (JWT + Google OAuth)
+- User authentication (JWT + Google OAuth + Facebook OAuth)
+- Email verification with Mailjet
 - Core tournament management features
 - Division & player management with CSV import
 - Draw generation with seeding options
 - Live match scoring and bracket progression
+- Digital referee scoring (QR/OTP access)
+- PDF score sheet generation
+- Moderator management for tournaments
+- Configurable scoring rules per sport
 - Public live match center (no auth required)
 - Dark/light theme support
 - Responsive UI with Shadcn components
@@ -19,6 +24,7 @@
 3. **CORS**: Restrict to your domain only
 4. **Rate Limiting**: Consider adding for API protection
 5. **Error Logging**: Add production error tracking (e.g., Sentry)
+6. **Email**: Configure Mailjet for email verification
 
 ---
 
