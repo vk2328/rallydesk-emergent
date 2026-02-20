@@ -997,10 +997,14 @@ async def get_match(match_id: str, current_user: dict = Depends(get_current_user
     collection = "players" if match_type == "singles" else "teams"
     
     if match.get("participant1_id"):
-        p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0, "name": 1, "id": 1})
+        p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0, "first_name": 1, "last_name": 1, "name": 1, "id": 1})
+        if p1:
+            p1["name"] = p1.get("name") or f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip()
         match["participant1"] = p1
     if match.get("participant2_id"):
-        p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0, "name": 1, "id": 1})
+        p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0, "first_name": 1, "last_name": 1, "name": 1, "id": 1})
+        if p2:
+            p2["name"] = p2.get("name") or f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip()
         match["participant2"] = p2
     
     return MatchResponse(**match)
