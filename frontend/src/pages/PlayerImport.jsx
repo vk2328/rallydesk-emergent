@@ -58,7 +58,7 @@ const PlayerImport = () => {
       formData.append('file', file);
       
       let url = `${API_URL}/tournaments/${tournamentId}/players/csv/upload`;
-      if (selectedDivision) {
+      if (selectedDivision && selectedDivision !== 'none') {
         url += `?division_id=${selectedDivision}`;
       }
       
