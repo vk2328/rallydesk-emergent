@@ -112,8 +112,12 @@ class UserResponse(BaseModel):
     id: str
     username: str
     email: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone_number: Optional[str] = None
     display_name: Optional[str] = None
     role: str
+    email_verified: bool = False
     created_at: str
 
 class TokenResponse(BaseModel):
