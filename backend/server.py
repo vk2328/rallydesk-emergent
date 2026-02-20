@@ -872,26 +872,26 @@ async def get_player(tournament_id: str, player_id: str, current_user: dict = De
 
 @api_router.put("/tournaments/{tournament_id}/players/{player_id}")
 async def update_player(tournament_id: str, player_id: str, player: PlayerCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     update_data = player.model_dump(exclude_unset=True)
     await db.players.update_one({"id": player_id, "tournament_id": tournament_id}, {"$set": update_data})
     return {"message": "Player updated"}
 
 @api_router.delete("/tournaments/{tournament_id}/players/{player_id}")
 async def delete_player(tournament_id: str, player_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.players.delete_one({"id": player_id, "tournament_id": tournament_id})
     return {"message": "Player deleted"}
 
 @api_router.post("/tournaments/{tournament_id}/players/bulk-delete")
 async def bulk_delete_players(tournament_id: str, player_ids: List[str], current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     result = await db.players.delete_many({"id": {"$in": player_ids}, "tournament_id": tournament_id})
     return {"message": f"Deleted {result.deleted_count} players"}
 
 @api_router.post("/tournaments/{tournament_id}/players/bulk-add")
 async def bulk_add_players(tournament_id: str, players: List[PlayerCreate], current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     now = datetime.now(timezone.utc).isoformat()
     created = 0
