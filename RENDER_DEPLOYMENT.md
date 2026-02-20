@@ -95,8 +95,16 @@
    DB_NAME=rallydesk
    JWT_SECRET=<generate-a-secure-random-string-64-chars>
    CORS_ORIGINS=https://rallydesk.app,https://www.rallydesk.app
+   
+   # Google OAuth (optional)
    GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
    GOOGLE_CLIENT_SECRET=<your-google-oauth-secret>
+   
+   # Mailjet Email Verification (optional but recommended)
+   MJ_APIKEY_PUBLIC=<your-mailjet-public-key>
+   MJ_APIKEY_PRIVATE=<your-mailjet-private-key>
+   MJ_FROM_EMAIL=noreply@yourdomain.com
+   EMAIL_FROM_NAME=Rally Desk
    ```
 
    > ⚠️ **Important MONGO_URL format:**
