@@ -112,6 +112,7 @@ class UserCreate(BaseModel):
     last_name: str
     phone_number: Optional[str] = None
     display_name: Optional[str] = None
+    turnstile_token: Optional[str] = None
 
 class UserLogin(BaseModel):
     username: str
