@@ -52,12 +52,90 @@ const TournamentDetail = () => {
   const [editingScoringRules, setEditingScoringRules] = useState(null);
   const [scoringRulesForm, setScoringRulesForm] = useState(null);
 
+  // Moderator management states
+  const [moderators, setModerators] = useState([]);
+  const [ownerId, setOwnerId] = useState(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
   // In SaaS mode, if user can see tournament, they have access to manage it
   const isAdmin = true;  // User has access if they can fetch the tournament
+  const isOwner = user?.id === ownerId;
 
   useEffect(() => {
     fetchTournamentData();
+    fetchModerators();
   }, [id]);
+
+  const fetchModerators = async () => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/tournaments/${id}/moderators`,
+        { headers: getAuthHeader() }
+      );
+      setModerators(response.data.moderators || []);
+      setOwnerId(response.data.owner_id);
+    } catch (error) {
+      console.error('Failed to fetch moderators');
+    }
+  };
+
+  const handleSearchUsers = async (query) => {
+    setUserSearchQuery(query);
+    if (query.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    
+    setSearchingUsers(true);
+    try {
+      const response = await axios.get(
+        `${API_URL}/users/search?q=${encodeURIComponent(query)}`,
+        { headers: getAuthHeader() }
+      );
+      // Filter out existing moderators and owner
+      const filtered = response.data.filter(
+        u => u.id !== ownerId && !moderators.some(m => m.id === u.id)
+      );
+      setUserSearchResults(filtered);
+    } catch (error) {
+      console.error('Failed to search users');
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const handleAddModerator = async (userId) => {
+    try {
+      await axios.post(
+        `${API_URL}/tournaments/${id}/moderators`,
+        { user_id: userId, action: 'add' },
+        { headers: getAuthHeader() }
+      );
+      toast.success('Moderator added');
+      fetchModerators();
+      setUserSearchQuery('');
+      setUserSearchResults([]);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to add moderator');
+    }
+  };
+
+  const handleRemoveModerator = async (userId) => {
+    if (!window.confirm('Remove this moderator?')) return;
+    try {
+      await axios.post(
+        `${API_URL}/tournaments/${id}/moderators`,
+        { user_id: userId, action: 'remove' },
+        { headers: getAuthHeader() }
+      );
+      toast.success('Moderator removed');
+      fetchModerators();
+    } catch (error) {
+      toast.error('Failed to remove moderator');
+    }
+  };
 
   const handleUpdateScoringRules = async () => {
     if (!editingScoringRules) return;
