@@ -303,6 +303,74 @@ const TournamentDetail = () => {
     }
   };
 
+  // Update handlers
+  const handleEditDivision = (division) => {
+    setEditDivisionForm({ name: division.name, description: division.description || '' });
+    setEditingDivision(division);
+  };
+
+  const handleUpdateDivision = async () => {
+    if (!editingDivision) return;
+    try {
+      await axios.put(
+        `${API_URL}/tournaments/${id}/divisions/${editingDivision.id}`,
+        editDivisionForm,
+        { headers: getAuthHeader() }
+      );
+      toast.success('Division updated');
+      setEditingDivision(null);
+      fetchTournamentData();
+    } catch (error) {
+      toast.error('Failed to update division');
+    }
+  };
+
+  const handleEditResource = (resource) => {
+    setEditResourceForm({ name: resource.name, sport: resource.sport });
+    setEditingResource(resource);
+  };
+
+  const handleUpdateResource = async () => {
+    if (!editingResource) return;
+    try {
+      await axios.put(
+        `${API_URL}/tournaments/${id}/resources/${editingResource.id}`,
+        editResourceForm,
+        { headers: getAuthHeader() }
+      );
+      toast.success('Resource updated');
+      setEditingResource(null);
+      fetchTournamentData();
+    } catch (error) {
+      toast.error('Failed to update resource');
+    }
+  };
+
+  const handleEditCompetition = (competition) => {
+    setEditCompetitionForm({ 
+      name: competition.name, 
+      format: competition.format,
+      participant_type: competition.participant_type 
+    });
+    setEditingCompetition(competition);
+  };
+
+  const handleUpdateCompetition = async () => {
+    if (!editingCompetition) return;
+    try {
+      await axios.put(
+        `${API_URL}/tournaments/${id}/competitions/${editingCompetition.id}`,
+        editCompetitionForm,
+        { headers: getAuthHeader() }
+      );
+      toast.success('Competition updated');
+      setEditingCompetition(null);
+      fetchTournamentData();
+    } catch (error) {
+      toast.error('Failed to update competition');
+    }
+  };
+
   // Group resources by sport
   const resourcesBySport = resources.reduce((acc, r) => {
     if (!acc[r.sport]) acc[r.sport] = [];
