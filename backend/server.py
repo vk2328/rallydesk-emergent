@@ -35,6 +35,23 @@ ACCESS_TOKEN_EXPIRE_HOURS = 24
 security = HTTPBearer(auto_error=False)
 
 app = FastAPI(title="RallyDesk - Multi-Sport Tournament Platform")
+
+# CORS Middleware - MUST be added immediately after app creation
+origins = os.environ.get('CORS_ORIGINS', '*')
+if origins == '*':
+    allow_origins = ["*"]
+else:
+    allow_origins = [origin.strip() for origin in origins.split(',')]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
