@@ -382,6 +382,32 @@ def require_scorekeeper_or_admin(user: dict):
         raise HTTPException(status_code=403, detail="Scorekeeper or Admin access required")
     return user
 
+async def get_user_tournaments_filter(user_id: str):
+    """Get MongoDB filter for tournaments user can access (owns or is moderator of)"""
+    return {
+        "$or": [
+            {"created_by": user_id},
+            {"moderators": user_id}
+        ]
+    }
+
+async def require_tournament_access(tournament_id: str, user: dict, require_owner: bool = False):
+    """Check if user has access to tournament (owner or moderator)"""
+    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    
+    is_owner = tournament.get("created_by") == user["id"]
+    is_moderator = user["id"] in tournament.get("moderators", [])
+    
+    if require_owner and not is_owner:
+        raise HTTPException(status_code=403, detail="Only tournament owner can perform this action")
+    
+    if not is_owner and not is_moderator:
+        raise HTTPException(status_code=403, detail="You don't have access to this tournament")
+    
+    return tournament, is_owner
+
 # ============== AUTH ROUTES ==============
 
 @api_router.post("/auth/register", response_model=TokenResponse)
