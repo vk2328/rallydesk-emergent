@@ -483,29 +483,70 @@ const CompetitionDetail = () => {
                           {matchesByRound[round].map((match) => (
                             <div
                               key={match.id}
-                              className={`border rounded-lg overflow-hidden cursor-pointer hover:border-primary/50 transition-colors ${
-                                match.status === 'live' ? 'border-red-500 animate-pulse' : 'border-border/40'
+                              className={`border rounded-lg overflow-hidden transition-colors ${
+                                match.status === 'live' ? 'border-red-500 animate-pulse' : 
+                                selectedMatchForSwap?.id === match.id ? 'border-primary ring-2 ring-primary' :
+                                isEditBracketMode && selectedMatchForSwap ? 'border-primary/50 cursor-pointer hover:border-primary' :
+                                'border-border/40 cursor-pointer hover:border-primary/50'
                               }`}
-                              onClick={() => match.participant1_id && match.participant2_id && navigate(`/tournaments/${tournamentId}/matches/${match.id}`)}
+                              onClick={() => {
+                                if (isEditBracketMode && selectedMatchForSwap && selectedMatchForSwap.id !== match.id) {
+                                  // Swap with selected match
+                                  handleSwapParticipants(selectedMatchForSwap.id, match.id, 'both');
+                                } else if (isEditBracketMode) {
+                                  // Select this match for swapping
+                                  setSelectedMatchForSwap(match);
+                                } else if (match.participant1_id && match.participant2_id) {
+                                  navigate(`/tournaments/${tournamentId}/matches/${match.id}`);
+                                }
+                              }}
                               data-testid={`bracket-match-${match.id}`}
                             >
+                              {/* Edit Mode Header */}
+                              {isEditBracketMode && (
+                                <div className="px-3 py-1.5 bg-primary/10 border-b border-border/40 flex items-center justify-between">
+                                  <span className="text-xs font-medium text-primary">
+                                    {selectedMatchForSwap?.id === match.id ? 'Selected - Click another match to swap' : 'Click to select'}
+                                  </span>
+                                  {selectedMatchForSwap?.id === match.id && (
+                                    <Button size="sm" variant="ghost" className="h-6 px-2" onClick={(e) => { e.stopPropagation(); setSelectedMatchForSwap(null); }}>
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                              
                               {/* Participant 1 */}
                               <div className={`p-3 flex items-center justify-between ${
                                 match.winner_id === match.participant1_id ? 'bg-green-500/10' : 'bg-muted/30'
                               }`}>
                                 <div className="flex items-center gap-2">
+                                  {match.seed1 && <span className="text-xs text-muted-foreground">[{match.seed1}]</span>}
                                   {match.winner_id === match.participant1_id && (
                                     <Award className="w-4 h-4 text-green-500" />
                                   )}
                                   <span className={match.winner_id === match.participant1_id ? 'font-semibold' : ''}>
-                                    {match.participant1?.name || getPlayerName(match.participant1) || 'TBD'}
+                                    {match.participant1?.name || getParticipantName(match.participant1_id)}
                                   </span>
                                 </div>
-                                {match.scores?.length > 0 && (
-                                  <span className="font-teko text-xl">
-                                    {match.scores.filter(s => s.score1 > s.score2).length}
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {match.scores?.length > 0 && (
+                                    <span className="font-teko text-xl">
+                                      {match.scores.filter(s => s.score1 > s.score2).length}
+                                    </span>
+                                  )}
+                                  {/* Manual advance button */}
+                                  {isEditBracketMode && match.participant1_id && match.participant2_id && match.status !== 'completed' && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2"
+                                      onClick={(e) => { e.stopPropagation(); handleAdvanceWinner(match.id, match.participant1_id); }}
+                                    >
+                                      <Check className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                               
                               <div className="border-t border-border/40" />
@@ -515,22 +556,36 @@ const CompetitionDetail = () => {
                                 match.winner_id === match.participant2_id ? 'bg-green-500/10' : 'bg-muted/30'
                               }`}>
                                 <div className="flex items-center gap-2">
+                                  {match.seed2 && <span className="text-xs text-muted-foreground">[{match.seed2}]</span>}
                                   {match.winner_id === match.participant2_id && (
                                     <Award className="w-4 h-4 text-green-500" />
                                   )}
                                   <span className={match.winner_id === match.participant2_id ? 'font-semibold' : ''}>
-                                    {match.participant2?.name || getPlayerName(match.participant2) || 'TBD'}
+                                    {match.participant2?.name || getParticipantName(match.participant2_id)}
                                   </span>
                                 </div>
-                                {match.scores?.length > 0 && (
-                                  <span className="font-teko text-xl">
-                                    {match.scores.filter(s => s.score2 > s.score1).length}
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {match.scores?.length > 0 && (
+                                    <span className="font-teko text-xl">
+                                      {match.scores.filter(s => s.score2 > s.score1).length}
+                                    </span>
+                                  )}
+                                  {/* Manual advance button */}
+                                  {isEditBracketMode && match.participant1_id && match.participant2_id && match.status !== 'completed' && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2"
+                                      onClick={(e) => { e.stopPropagation(); handleAdvanceWinner(match.id, match.participant2_id); }}
+                                    >
+                                      <Check className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                               
                               {/* Match action */}
-                              {match.participant1_id && match.participant2_id && match.status !== 'completed' && (
+                              {!isEditBracketMode && match.participant1_id && match.participant2_id && match.status !== 'completed' && (
                                 <div className="p-2 bg-muted/20 border-t border-border/40">
                                   <Button
                                     size="sm"
@@ -553,6 +608,18 @@ const CompetitionDetail = () => {
                     ))}
                   </div>
                 </ScrollArea>
+                
+                {/* Edit Mode Instructions */}
+                {isEditBracketMode && (
+                  <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                    <h4 className="font-medium mb-2">Edit Mode Active</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Click a match to select it, then click another match to swap all participants</li>
+                      <li>• Click the checkmark (✓) next to a player to manually advance them as winner</li>
+                      <li>• Click "Done Editing" when finished</li>
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
