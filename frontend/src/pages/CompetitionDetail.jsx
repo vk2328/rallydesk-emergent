@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 const CompetitionDetail = () => {
-  const { id: tournamentId, competitionId } = useParams();
+  const { tournamentId, competitionId } = useParams();
   const navigate = useNavigate();
   const { getAuthHeader, user } = useAuth();
   const [competition, setCompetition] = useState(null);
