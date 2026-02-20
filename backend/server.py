@@ -566,10 +566,19 @@ async def resend_verification(current_user: dict = Depends(require_auth)):
         {"$set": {"verification_code": verification_code}}
     )
     
-    # Log verification code (in production, send via email)
-    logger.info(f"New email verification code for {user['email']}: {verification_code}")
+    # Send verification email via Mailjet
+    email_sent = send_verification_email(
+        recipient_email=user["email"],
+        verification_code=verification_code,
+        recipient_name=f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or None
+    )
     
-    return {"message": "Verification code sent", "code": verification_code}  # Remove code from response in production
+    if email_sent:
+        return {"message": "Verification code sent to your email"}
+    else:
+        # Fallback - log and return code (for dev environments without email config)
+        logger.info(f"Email service unavailable. Verification code for {user['email']}: {verification_code}")
+        return {"message": "Verification code sent", "code": verification_code}
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
