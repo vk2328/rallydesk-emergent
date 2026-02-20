@@ -169,18 +169,31 @@ Action: Rewrite
 
 ### Backend (.env)
 ```env
+# Required
 MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/rallydesk
 DB_NAME=rallydesk
 JWT_SECRET=your-64-character-secret-key-here
 CORS_ORIGINS=https://rallydesk.onrender.com
+
+# Google OAuth (optional)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=https://rallydesk-api.onrender.com/api/auth/google/callback
+
+# Mailjet Email Verification (optional but recommended)
+MJ_APIKEY_PUBLIC=your-mailjet-public-key
+MJ_APIKEY_PRIVATE=your-mailjet-private-key
+MJ_FROM_EMAIL=noreply@yourdomain.com
+EMAIL_FROM_NAME=Rally Desk
 ```
 
 ### Frontend (.env)
 ```env
+# Required
 REACT_APP_BACKEND_URL=https://rallydesk-api.onrender.com
+
+# Facebook OAuth (optional)
+REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
 ```
 
 ---
