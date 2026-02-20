@@ -87,10 +87,11 @@ const PlayerImport = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent = `first_name,last_name,email,skill_level
-John,Smith,john@example.com,intermediate
-Jane,Doe,jane@example.com,advanced
-Bob,Wilson,bob@example.com,beginner`;
+    const csvContent = `firstName,lastName,email,phone,gender,skillLevel,sports,rating,team,division,club
+John,Smith,john@example.com,+1234567890,male,intermediate,table_tennis,1500,Team Alpha,Open,City Club
+Jane,Doe,jane@example.com,,female,advanced,badminton,1800,Team Alpha,Open,Metro Club
+Mike,Johnson,,,male,beginner,volleyball,,,Men's,
+Sarah,Wilson,sarah@example.com,,female,advanced,table_tennis,1700,Team Beta,Women's,`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
