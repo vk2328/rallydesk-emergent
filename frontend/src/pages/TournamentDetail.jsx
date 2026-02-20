@@ -15,7 +15,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, Calendar, MapPin, Users, Trophy, Play, 
-  Plus, Settings, Grid3X3, ChevronRight, Trash2
+  Plus, Settings, Grid3X3, ChevronRight, Trash2, Upload, BarChart3, Monitor, ExternalLink
 } from 'lucide-react';
 
 const TournamentDetail = () => {
