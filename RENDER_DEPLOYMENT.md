@@ -22,6 +22,16 @@
 
 ---
 
+## Quick Reference - Final URLs
+
+| Service | URL |
+|---------|-----|
+| Frontend | `https://rallydesk.app` |
+| Frontend (www) | `https://www.rallydesk.app` |
+| Backend API | `https://api.rallydesk.app` |
+
+---
+
 ## Render Deployment Instructions
 
 ### Step 1: Prepare Your Repository
