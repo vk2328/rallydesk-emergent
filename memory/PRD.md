@@ -146,6 +146,7 @@ Build a multi-sport tournament operations platform named **RallyDesk** supportin
 ## Frontend Routes
 
 ```
+/live                                       - LIVE MATCH CENTER (public, no auth)
 /login                                      - Login page with Google OAuth
 /dashboard                                  - Main dashboard
 /tournaments                                - Tournament listing
