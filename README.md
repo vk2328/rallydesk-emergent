@@ -23,6 +23,7 @@ A comprehensive tournament management platform supporting Table Tennis, Badminto
 ### Authentication & User Management
 - **Multiple Login Options**: Email/password, Google OAuth, Facebook OAuth
 - **Email Verification**: Mailjet-powered verification with professional emails
+- **Bot Protection**: Cloudflare Turnstile on login/register forms
 - **Role-Based Access**: Organizers manage their own tournaments
 - **Dark/Light Theme**: User-selectable theme
 
