@@ -920,7 +920,7 @@ const TournamentDetail = () => {
         </TabsContent>
 
         {/* Settings Tab */}
-        <TabsContent value="settings" className="mt-4">
+        <TabsContent value="settings" className="mt-4 space-y-6">
           <Card className="bg-card border-border/40">
             <CardHeader>
               <CardTitle className="font-heading uppercase">Tournament Settings</CardTitle>
@@ -953,8 +953,139 @@ const TournamentDetail = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Scoring Rules Card */}
+          <Card className="bg-card border-border/40">
+            <CardHeader>
+              <CardTitle className="font-heading uppercase">Scoring Rules</CardTitle>
+              <CardDescription>Configure sets and points for each sport</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { key: 'table_tennis', name: 'Table Tennis', icon: '🏓', defaults: { sets: 3, points: 11 } },
+                  { key: 'badminton', name: 'Badminton', icon: '🏸', defaults: { sets: 2, points: 21 } },
+                  { key: 'volleyball', name: 'Volleyball', icon: '🏐', defaults: { sets: 3, points: 25 } },
+                  { key: 'tennis', name: 'Tennis', icon: '🎾', defaults: { sets: 2, points: 6 } },
+                  { key: 'pickleball', name: 'Pickleball', icon: '🥒', defaults: { sets: 2, points: 11 } },
+                ].map((sport) => {
+                  const rules = tournament.settings?.scoring_rules?.[sport.key] || sport.defaults;
+                  return (
+                    <div key={sport.key} className="p-4 rounded-lg border border-border/40 bg-muted/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-xl">{sport.icon}</span>
+                        <h4 className="font-semibold">{sport.name}</h4>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Sets to win:</span>
+                          <span className="font-medium">{rules.sets_to_win || rules.sets}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Points per set:</span>
+                          <span className="font-medium">{rules.points_to_win_set || rules.points}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Win by:</span>
+                          <span className="font-medium">{rules.points_must_win_by || 2} pts</span>
+                        </div>
+                        {rules.max_points_per_set && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Max points:</span>
+                            <span className="font-medium">{rules.max_points_per_set}</span>
+                          </div>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full mt-3"
+                          onClick={() => {
+                            setEditingScoringRules(sport.key);
+                            setScoringRulesForm(rules);
+                          }}
+                          data-testid={`edit-scoring-${sport.key}`}
+                        >
+                          <Edit className="w-3 h-3 mr-1" /> Edit Rules
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Scoring Rules Edit Dialog */}
+      <Dialog open={!!editingScoringRules} onOpenChange={() => setEditingScoringRules(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Scoring Rules</DialogTitle>
+            <DialogDescription>
+              Configure the scoring rules for {editingScoringRules?.replace('_', ' ')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Sets to Win</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={scoringRulesForm?.sets_to_win || scoringRulesForm?.sets || 2}
+                  onChange={(e) => setScoringRulesForm({ ...scoringRulesForm, sets_to_win: parseInt(e.target.value) })}
+                  data-testid="scoring-sets-input"
+                />
+                <p className="text-xs text-muted-foreground">Best of {((scoringRulesForm?.sets_to_win || 2) * 2) - 1}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Points to Win Set</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={scoringRulesForm?.points_to_win_set || scoringRulesForm?.points || 21}
+                  onChange={(e) => setScoringRulesForm({ ...scoringRulesForm, points_to_win_set: parseInt(e.target.value) })}
+                  data-testid="scoring-points-input"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Must Win By</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={scoringRulesForm?.points_must_win_by || 2}
+                  onChange={(e) => setScoringRulesForm({ ...scoringRulesForm, points_must_win_by: parseInt(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Max Points (Cap)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="No cap"
+                  value={scoringRulesForm?.max_points_per_set || ''}
+                  onChange={(e) => setScoringRulesForm({ ...scoringRulesForm, max_points_per_set: e.target.value ? parseInt(e.target.value) : null })}
+                />
+              </div>
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={handleUpdateScoringRules}
+              disabled={loading}
+            >
+              {loading ? 'Saving...' : 'Save Scoring Rules'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
