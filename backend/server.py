@@ -1,22 +1,23 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
-import csv
-import io
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Literal
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 import math
 import random
+import csv
+import io
+from enum import Enum
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -27,37 +28,46 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # JWT Configuration
-SECRET_KEY = os.environ.get('JWT_SECRET', 'arena-sports-secret-key-2024')
+SECRET_KEY = os.environ.get('JWT_SECRET', 'rallydesk-secret-key-2026')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
-# Create the main app
-app = FastAPI(title="RallyDesk - Sports Tournament Management")
-
-# Create a router with the /api prefix
+app = FastAPI(title="RallyDesk - Multi-Sport Tournament Platform")
 api_router = APIRouter(prefix="/api")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ============== ENUMS ==============
+
+SPORTS = ["table_tennis", "badminton", "volleyball", "tennis", "pickleball"]
+ROLES = ["viewer", "scorekeeper", "admin"]
+FORMATS = ["round_robin", "single_elimination", "double_elimination", "groups_knockout"]
+PARTICIPANT_TYPES = ["single", "pair", "team"]
+MATCH_STATUSES = ["pending", "scheduled", "live", "completed", "cancelled"]
+RESOURCE_TYPES = ["table", "court", "field"]
+
 # ============== MODELS ==============
 
+# Auth Models
 class UserCreate(BaseModel):
+    username: str
     email: EmailStr
     password: str
-    name: str
+    display_name: Optional[str] = None
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 class UserResponse(BaseModel):
     id: str
+    username: str
     email: str
-    name: str
+    display_name: Optional[str] = None
+    role: str
     created_at: str
 
 class TokenResponse(BaseModel):
@@ -65,130 +75,211 @@ class TokenResponse(BaseModel):
     token_type: str
     user: UserResponse
 
+# Tournament Models
+class TournamentSettings(BaseModel):
+    min_rest_minutes: int = 10
+    buffer_minutes: int = 5
+    default_duration_minutes: Dict[str, int] = Field(default_factory=lambda: {
+        "table_tennis": 20, "badminton": 30, "volleyball": 45, "tennis": 60, "pickleball": 25
+    })
+    scorekeeper_can_assign: bool = True
+
+class TournamentCreate(BaseModel):
+    name: str
+    venue: Optional[str] = None
+    timezone: str = "UTC"
+    start_date: str
+    end_date: Optional[str] = None
+    description: Optional[str] = None
+    settings: Optional[TournamentSettings] = None
+
+class TournamentResponse(BaseModel):
+    id: str
+    name: str
+    venue: Optional[str] = None
+    timezone: str
+    start_date: str
+    end_date: Optional[str] = None
+    description: Optional[str] = None
+    settings: dict
+    status: str
+    created_by: str
+    created_at: str
+
+# Player Models
 class PlayerCreate(BaseModel):
     first_name: str
-    last_name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    gender: Optional[str] = None  # male, female, other
-    age: Optional[int] = None
-    skill_level: Optional[str] = "intermediate"  # beginner, intermediate, advanced, pro
-    sport: str  # table_tennis, badminton
-    team: Optional[str] = None
-
-class PlayerResponse(BaseModel):
-    id: str
-    first_name: str
-    last_name: str
+    last_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     gender: Optional[str] = None
     age: Optional[int] = None
-    skill_level: str
-    sport: str
-    team: Optional[str] = None
+    skill_level: Optional[str] = "intermediate"
+    sports: List[str] = Field(default_factory=list)
+    rating: Optional[int] = None
+    team_name: Optional[str] = None
+    club: Optional[str] = None
+
+class PlayerResponse(BaseModel):
+    id: str
+    tournament_id: str
+    first_name: str
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    skill_level: Optional[str] = None
+    sports: List[str] = []
+    rating: Optional[int] = None
+    team_name: Optional[str] = None
+    club: Optional[str] = None
     wins: int = 0
     losses: int = 0
     matches_played: int = 0
     created_at: str
 
+# Resource Models
+class ResourceCreate(BaseModel):
+    sport: str
+    label: str
+    location: Optional[str] = None
+    resource_type: str = "table"
+    enabled: bool = True
+
+class ResourceResponse(BaseModel):
+    id: str
+    tournament_id: str
+    sport: str
+    label: str
+    location: Optional[str] = None
+    resource_type: str
+    enabled: bool
+    current_match_id: Optional[str] = None
+    locked: bool = False
+    created_at: str
+
+# Division Models
+class DivisionCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    eligibility: Optional[Dict[str, Any]] = None
+
+class DivisionResponse(BaseModel):
+    id: str
+    tournament_id: str
+    name: str
+    description: Optional[str] = None
+    eligibility: Optional[dict] = None
+    created_at: str
+
+# Team Models (for pairs/teams)
 class TeamCreate(BaseModel):
     name: str
-    sport: str
     player_ids: List[str]
+    sport: Optional[str] = None
 
 class TeamResponse(BaseModel):
     id: str
+    tournament_id: str
     name: str
-    sport: str
     player_ids: List[str]
     players: Optional[List[dict]] = None
+    sport: Optional[str] = None
     wins: int = 0
     losses: int = 0
     created_at: str
 
-class ResourceCreate(BaseModel):
-    name: str
-    resource_type: str  # table, court
-    sport: str  # table_tennis, badminton
-    location: Optional[str] = None
-    status: str = "available"  # available, in_use, maintenance
-
-class ResourceResponse(BaseModel):
-    id: str
-    name: str
-    resource_type: str
-    sport: str
-    location: Optional[str] = None
-    status: str
-    created_at: str
-
-class TournamentCreate(BaseModel):
-    name: str
-    sport: str  # table_tennis, badminton
-    format: str  # single_elimination, double_elimination, round_robin
-    match_type: str  # singles, doubles
-    start_date: str
-    end_date: Optional[str] = None
-    max_participants: int = 32
-    description: Optional[str] = None
+# Competition Models (merged Contest/Event/Competition)
+class ScoringRules(BaseModel):
     sets_to_win: int = 3
     points_per_set: int = 11
+    win_by_two: bool = True
+    point_cap: Optional[int] = None
+    deuce_rules: Optional[str] = None
 
-class TournamentResponse(BaseModel):
+class CompetitionCreate(BaseModel):
+    name: str
+    division_id: Optional[str] = None
+    sport: str
+    discipline: Optional[str] = None  # singles, doubles, mixed_doubles, team
+    format: str  # round_robin, single_elimination, groups_knockout
+    participant_type: str = "single"  # single, pair, team
+    num_groups: int = 1
+    advance_per_group: int = 2
+    scoring_rules: Optional[ScoringRules] = None
+
+class CompetitionResponse(BaseModel):
     id: str
+    tournament_id: str
+    division_id: Optional[str] = None
     name: str
     sport: str
+    discipline: Optional[str] = None
     format: str
-    match_type: str
-    start_date: str
-    end_date: Optional[str] = None
-    max_participants: int
-    description: Optional[str] = None
-    status: str  # draft, registration, in_progress, completed
+    participant_type: str
+    num_groups: int
+    advance_per_group: int
+    scoring_rules: dict
+    status: str  # draft, draw_generated, in_progress, completed
     participant_ids: List[str] = []
-    sets_to_win: int
-    points_per_set: int
     created_at: str
 
-class MatchCreate(BaseModel):
-    tournament_id: str
-    round_number: int
-    match_number: int
-    participant1_id: Optional[str] = None
-    participant2_id: Optional[str] = None
-    resource_id: Optional[str] = None
-    scheduled_time: Optional[str] = None
-
+# Match Models
 class SetScore(BaseModel):
     set_number: int
-    participant1_score: int
-    participant2_score: int
+    score1: int
+    score2: int
+
+class MatchCreate(BaseModel):
+    competition_id: str
+    round_number: int
+    match_number: int
+    group_number: Optional[int] = None
+    participant1_id: Optional[str] = None
+    participant2_id: Optional[str] = None
 
 class MatchUpdate(BaseModel):
-    winner_id: Optional[str] = None
     status: Optional[str] = None
     scores: Optional[List[SetScore]] = None
-    current_set: Optional[int] = None
+    winner_id: Optional[str] = None
+    resource_id: Optional[str] = None
+    scheduled_time: Optional[str] = None
 
 class MatchResponse(BaseModel):
     id: str
     tournament_id: str
+    competition_id: str
     round_number: int
     match_number: int
+    group_number: Optional[int] = None
     participant1_id: Optional[str] = None
     participant2_id: Optional[str] = None
     participant1: Optional[dict] = None
     participant2: Optional[dict] = None
     winner_id: Optional[str] = None
     resource_id: Optional[str] = None
+    resource: Optional[dict] = None
     scheduled_time: Optional[str] = None
-    status: str  # pending, in_progress, completed
+    status: str
     scores: List[dict] = []
-    current_set: int = 1
     bracket_position: Optional[str] = None
     next_match_id: Optional[str] = None
     created_at: str
+
+# Standings Models
+class StandingsEntry(BaseModel):
+    participant_id: str
+    participant_name: str
+    group_number: Optional[int] = None
+    played: int = 0
+    wins: int = 0
+    losses: int = 0
+    sets_for: int = 0
+    sets_against: int = 0
+    points_for: int = 0
+    points_against: int = 0
+    rank: int = 0
 
 # ============== AUTH HELPERS ==============
 
@@ -205,35 +296,59 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if not credentials:
+        return None
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            return None
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
         return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except:
+        return None
+
+async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    user = await get_current_user(credentials)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return user
+
+async def require_role(required_roles: List[str], user: dict):
+    if user["role"] not in required_roles:
+        raise HTTPException(status_code=403, detail=f"Requires role: {required_roles}")
+    return user
+
+def require_admin(user: dict):
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+def require_scorekeeper_or_admin(user: dict):
+    if user["role"] not in ["admin", "scorekeeper"]:
+        raise HTTPException(status_code=403, detail="Scorekeeper or Admin access required")
+    return user
 
 # ============== AUTH ROUTES ==============
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
+    existing = await db.users.find_one({"$or": [{"email": user_data.email}, {"username": user_data.username}]})
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Email or username already registered")
+    
+    if len(user_data.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
     user_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     user_doc = {
         "id": user_id,
+        "username": user_data.username,
         "email": user_data.email,
-        "name": user_data.name,
+        "display_name": user_data.display_name or user_data.username,
         "password_hash": hash_password(user_data.password),
+        "role": "viewer",  # New users start as viewers
         "created_at": now
     }
     await db.users.insert_one(user_doc)
@@ -242,12 +357,13 @@ async def register(user_data: UserCreate):
     return TokenResponse(
         access_token=token,
         token_type="bearer",
-        user=UserResponse(id=user_id, email=user_data.email, name=user_data.name, created_at=now)
+        user=UserResponse(id=user_id, username=user_data.username, email=user_data.email, 
+                         display_name=user_doc["display_name"], role="viewer", created_at=now)
     )
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
     if not user or not verify_password(credentials.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
@@ -255,26 +371,111 @@ async def login(credentials: UserLogin):
     return TokenResponse(
         access_token=token,
         token_type="bearer",
-        user=UserResponse(id=user["id"], email=user["email"], name=user["name"], created_at=user["created_at"])
+        user=UserResponse(id=user["id"], username=user["username"], email=user["email"],
+                         display_name=user.get("display_name"), role=user["role"], created_at=user["created_at"])
     )
 
 @api_router.get("/auth/me", response_model=UserResponse)
-async def get_me(current_user: dict = Depends(get_current_user)):
+async def get_me(current_user: dict = Depends(require_auth)):
     return UserResponse(
-        id=current_user["id"],
-        email=current_user["email"],
-        name=current_user["name"],
-        created_at=current_user["created_at"]
+        id=current_user["id"], username=current_user["username"], email=current_user["email"],
+        display_name=current_user.get("display_name"), role=current_user["role"], created_at=current_user["created_at"]
     )
+
+@api_router.put("/auth/profile")
+async def update_profile(display_name: Optional[str] = None, current_user: dict = Depends(require_auth)):
+    update_data = {}
+    if display_name:
+        update_data["display_name"] = display_name
+    if update_data:
+        await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
+    return {"message": "Profile updated"}
+
+@api_router.put("/admin/users/{user_id}/role")
+async def update_user_role(user_id: str, role: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    if role not in ROLES:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {ROLES}")
+    await db.users.update_one({"id": user_id}, {"$set": {"role": role}})
+    return {"message": f"User role updated to {role}"}
+
+# ============== TOURNAMENT ROUTES ==============
+
+@api_router.post("/tournaments", response_model=TournamentResponse)
+async def create_tournament(tournament: TournamentCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    tournament_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    settings = tournament.settings.model_dump() if tournament.settings else TournamentSettings().model_dump()
+    
+    tournament_doc = {
+        "id": tournament_id,
+        "name": tournament.name,
+        "venue": tournament.venue,
+        "timezone": tournament.timezone,
+        "start_date": tournament.start_date,
+        "end_date": tournament.end_date,
+        "description": tournament.description,
+        "settings": settings,
+        "status": "draft",
+        "created_by": current_user["id"],
+        "organizers": [current_user["id"]],
+        "created_at": now
+    }
+    await db.tournaments.insert_one(tournament_doc)
+    return TournamentResponse(**{k: v for k, v in tournament_doc.items() if k not in ["_id", "organizers"]})
+
+@api_router.get("/tournaments", response_model=List[TournamentResponse])
+async def list_tournaments(current_user: dict = Depends(require_auth)):
+    tournaments = await db.tournaments.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [TournamentResponse(**t) for t in tournaments]
+
+@api_router.get("/tournaments/{tournament_id}", response_model=TournamentResponse)
+async def get_tournament(tournament_id: str, current_user: dict = Depends(require_auth)):
+    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    return TournamentResponse(**tournament)
+
+@api_router.put("/tournaments/{tournament_id}")
+async def update_tournament(tournament_id: str, tournament: TournamentCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    existing = await db.tournaments.find_one({"id": tournament_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    
+    update_data = tournament.model_dump(exclude_unset=True)
+    if tournament.settings:
+        update_data["settings"] = tournament.settings.model_dump()
+    await db.tournaments.update_one({"id": tournament_id}, {"$set": update_data})
+    return {"message": "Tournament updated"}
+
+@api_router.delete("/tournaments/{tournament_id}")
+async def delete_tournament(tournament_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    # Delete all related data
+    await db.players.delete_many({"tournament_id": tournament_id})
+    await db.resources.delete_many({"tournament_id": tournament_id})
+    await db.divisions.delete_many({"tournament_id": tournament_id})
+    await db.competitions.delete_many({"tournament_id": tournament_id})
+    await db.matches.delete_many({"tournament_id": tournament_id})
+    await db.teams.delete_many({"tournament_id": tournament_id})
+    await db.tournaments.delete_one({"id": tournament_id})
+    return {"message": "Tournament deleted"}
 
 # ============== PLAYER ROUTES ==============
 
-@api_router.post("/players", response_model=PlayerResponse)
-async def create_player(player: PlayerCreate, current_user: dict = Depends(get_current_user)):
+@api_router.post("/tournaments/{tournament_id}/players", response_model=PlayerResponse)
+async def create_player(tournament_id: str, player: PlayerCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
     player_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    
     player_doc = {
         "id": player_id,
+        "tournament_id": tournament_id,
         "first_name": player.first_name,
         "last_name": player.last_name,
         "email": player.email,
@@ -282,85 +483,99 @@ async def create_player(player: PlayerCreate, current_user: dict = Depends(get_c
         "gender": player.gender,
         "age": player.age,
         "skill_level": player.skill_level,
-        "sport": player.sport,
-        "team": player.team,
+        "sports": player.sports if player.sports else [],
+        "rating": player.rating,
+        "team_name": player.team_name,
+        "club": player.club,
         "wins": 0,
         "losses": 0,
         "matches_played": 0,
-        "created_by": current_user["id"],
         "created_at": now
     }
     await db.players.insert_one(player_doc)
-    return PlayerResponse(**{k: v for k, v in player_doc.items() if k != "created_by"})
+    return PlayerResponse(**player_doc)
 
-@api_router.get("/players", response_model=List[PlayerResponse])
-async def get_players(sport: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    query = {}
-    if sport:
-        query["sport"] = sport
-    players = await db.players.find(query, {"_id": 0, "created_by": 0}).to_list(1000)
+@api_router.get("/tournaments/{tournament_id}/players", response_model=List[PlayerResponse])
+async def list_players(
+    tournament_id: str, 
+    sport: Optional[str] = None,
+    sort_by: Optional[str] = "first_name",
+    current_user: dict = Depends(require_auth)
+):
+    query = {"tournament_id": tournament_id}
+    if sport and sport != "all":
+        query["sports"] = sport
     
-    # Handle both old and new player formats
-    result = []
-    for p in players:
-        # If old format with 'name' field, split into first/last name
-        if "name" in p and "first_name" not in p:
-            parts = p["name"].split(" ", 1)
-            p["first_name"] = parts[0]
-            p["last_name"] = parts[1] if len(parts) > 1 else ""
-        # Ensure all required fields exist
-        p.setdefault("first_name", "")
-        p.setdefault("last_name", "")
-        p.setdefault("gender", None)
-        p.setdefault("age", None)
-        p.setdefault("team", None)
-        result.append(PlayerResponse(**p))
-    return result
+    sort_field = sort_by if sort_by in ["first_name", "last_name", "email", "team_name", "rating"] else "first_name"
+    players = await db.players.find(query, {"_id": 0}).sort(sort_field, 1).to_list(1000)
+    return [PlayerResponse(**p) for p in players]
 
-@api_router.get("/players/{player_id}", response_model=PlayerResponse)
-async def get_player(player_id: str, current_user: dict = Depends(get_current_user)):
-    player = await db.players.find_one({"id": player_id}, {"_id": 0, "created_by": 0})
+@api_router.get("/tournaments/{tournament_id}/players/{player_id}", response_model=PlayerResponse)
+async def get_player(tournament_id: str, player_id: str, current_user: dict = Depends(require_auth)):
+    player = await db.players.find_one({"id": player_id, "tournament_id": tournament_id}, {"_id": 0})
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
-    # Handle old format
-    if "name" in player and "first_name" not in player:
-        parts = player["name"].split(" ", 1)
-        player["first_name"] = parts[0]
-        player["last_name"] = parts[1] if len(parts) > 1 else ""
-    player.setdefault("first_name", "")
-    player.setdefault("last_name", "")
-    player.setdefault("gender", None)
-    player.setdefault("age", None)
-    player.setdefault("team", None)
     return PlayerResponse(**player)
 
-@api_router.put("/players/{player_id}", response_model=PlayerResponse)
-async def update_player(player_id: str, player: PlayerCreate, current_user: dict = Depends(get_current_user)):
-    existing = await db.players.find_one({"id": player_id})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Player not found")
-    
+@api_router.put("/tournaments/{tournament_id}/players/{player_id}")
+async def update_player(tournament_id: str, player_id: str, player: PlayerCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
     update_data = player.model_dump(exclude_unset=True)
-    await db.players.update_one({"id": player_id}, {"$set": update_data})
-    updated = await db.players.find_one({"id": player_id}, {"_id": 0, "created_by": 0})
-    return PlayerResponse(**updated)
+    await db.players.update_one({"id": player_id, "tournament_id": tournament_id}, {"$set": update_data})
+    return {"message": "Player updated"}
 
-@api_router.delete("/players/{player_id}")
-async def delete_player(player_id: str, current_user: dict = Depends(get_current_user)):
-    result = await db.players.delete_one({"id": player_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Player not found")
+@api_router.delete("/tournaments/{tournament_id}/players/{player_id}")
+async def delete_player(tournament_id: str, player_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.players.delete_one({"id": player_id, "tournament_id": tournament_id})
     return {"message": "Player deleted"}
 
-@api_router.get("/players/csv/sample")
-async def download_sample_csv():
-    """Download a sample CSV file for player import"""
+@api_router.post("/tournaments/{tournament_id}/players/bulk-delete")
+async def bulk_delete_players(tournament_id: str, player_ids: List[str], current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    result = await db.players.delete_many({"id": {"$in": player_ids}, "tournament_id": tournament_id})
+    return {"message": f"Deleted {result.deleted_count} players"}
+
+@api_router.post("/tournaments/{tournament_id}/players/bulk-add")
+async def bulk_add_players(tournament_id: str, players: List[PlayerCreate], current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    created = 0
+    
+    for player in players:
+        player_id = str(uuid.uuid4())
+        player_doc = {
+            "id": player_id,
+            "tournament_id": tournament_id,
+            "first_name": player.first_name,
+            "last_name": player.last_name,
+            "email": player.email,
+            "phone": player.phone,
+            "gender": player.gender,
+            "age": player.age,
+            "skill_level": player.skill_level,
+            "sports": player.sports if player.sports else [],
+            "rating": player.rating,
+            "team_name": player.team_name,
+            "club": player.club,
+            "wins": 0,
+            "losses": 0,
+            "matches_played": 0,
+            "created_at": now
+        }
+        await db.players.insert_one(player_doc)
+        created += 1
+    
+    return {"message": f"Created {created} players", "created": created}
+
+@api_router.get("/tournaments/{tournament_id}/players/csv/sample")
+async def download_players_csv_sample(tournament_id: str, current_user: dict = Depends(require_auth)):
     sample_data = [
-        ["firstName", "lastName", "email", "phone", "gender", "age", "skillLevel", "sport", "team"],
-        ["John", "Smith", "john@example.com", "+1234567890", "male", "25", "intermediate", "table_tennis", "Team Alpha"],
-        ["Jane", "Doe", "jane@example.com", "+0987654321", "female", "28", "advanced", "badminton", "Team Beta"],
-        ["Mike", "Johnson", "mike@example.com", "", "male", "22", "beginner", "table_tennis", ""],
-        ["Sarah", "Wilson", "sarah@example.com", "+1122334455", "female", "30", "pro", "badminton", "Team Gamma"],
+        ["firstName", "lastName", "email", "phone", "gender", "age", "skillLevel", "sports", "rating", "teamName", "club"],
+        ["John", "Smith", "john@example.com", "+1234567890", "male", "25", "intermediate", "table_tennis,badminton", "1500", "Team Alpha", "City Club"],
+        ["Jane", "Doe", "jane@example.com", "", "female", "28", "advanced", "badminton", "1800", "", "Metro Club"],
+        ["Mike", "Johnson", "", "", "male", "22", "beginner", "volleyball,tennis", "", "Team Beta", ""],
     ]
     
     output = io.StringIO()
@@ -374,9 +589,10 @@ async def download_sample_csv():
         headers={"Content-Disposition": "attachment; filename=players_sample.csv"}
     )
 
-@api_router.post("/players/csv/upload")
-async def upload_players_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
-    """Upload players from a CSV file"""
+@api_router.post("/tournaments/{tournament_id}/players/csv/upload")
+async def upload_players_csv(tournament_id: str, file: UploadFile = File(...), current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
     
@@ -387,298 +603,573 @@ async def upload_players_csv(file: UploadFile = File(...), current_user: dict = 
     created_count = 0
     skipped_count = 0
     errors = []
+    now = datetime.now(timezone.utc).isoformat()
     
-    valid_sports = ['table_tennis', 'badminton']
-    valid_skills = ['beginner', 'intermediate', 'advanced', 'pro']
-    valid_genders = ['male', 'female', 'other']
-    
-    for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+    for row_num, row in enumerate(reader, start=2):
         try:
-            first_name = row.get('firstName', '').strip()
-            last_name = row.get('lastName', '').strip()
-            email = row.get('email', '').strip() or None
-            phone = row.get('phone', '').strip() or None
-            gender = row.get('gender', '').strip().lower() or None
-            age_str = row.get('age', '').strip()
-            age = int(age_str) if age_str else None
-            skill_level = row.get('skillLevel', 'intermediate').strip().lower()
-            sport = row.get('sport', '').strip().lower()
-            team = row.get('team', '').strip() or None
+            first_name = row.get('firstName', row.get('first_name', row.get('name', ''))).strip()
+            last_name = row.get('lastName', row.get('last_name', '')).strip()
             
-            if not first_name or not last_name:
-                errors.append(f"Row {row_num}: First name and last name are required")
+            # Handle single "name" field
+            if not first_name and 'name' in row:
+                parts = row['name'].strip().split(' ', 1)
+                first_name = parts[0]
+                last_name = parts[1] if len(parts) > 1 else ''
+            
+            if not first_name and not last_name:
+                errors.append(f"Row {row_num}: Name is required")
                 skipped_count += 1
                 continue
             
-            if sport not in valid_sports:
-                errors.append(f"Row {row_num}: Invalid sport '{sport}'. Use 'table_tennis' or 'badminton'")
-                skipped_count += 1
-                continue
+            sports_str = row.get('sports', row.get('sport', '')).strip()
+            sports_list = [s.strip().lower().replace(' ', '_') for s in sports_str.split(',') if s.strip()]
             
-            if skill_level not in valid_skills:
-                skill_level = 'intermediate'
-            
-            if gender and gender not in valid_genders:
-                gender = None
-            
-            # Check for duplicate by name and sport
-            full_name = f"{first_name} {last_name}"
-            existing = await db.players.find_one({"first_name": first_name, "last_name": last_name, "sport": sport})
-            if existing:
-                errors.append(f"Row {row_num}: Player '{full_name}' already exists for {sport}")
-                skipped_count += 1
-                continue
-            
-            player_id = str(uuid.uuid4())
-            now = datetime.now(timezone.utc).isoformat()
-            player_doc = {
-                "id": player_id,
-                "first_name": first_name,
-                "last_name": last_name,
-                "email": email,
-                "phone": phone,
-                "gender": gender,
-                "age": age,
-                "skill_level": skill_level,
-                "sport": sport,
-                "team": team,
-                "wins": 0,
-                "losses": 0,
-                "matches_played": 0,
-                "created_by": current_user["id"],
-                "created_at": now
-            }
-            await db.players.insert_one(player_doc)
-            created_count += 1
-            
+            # Create one player per sport if multiple sports
+            for sport in (sports_list if sports_list else [None]):
+                player_id = str(uuid.uuid4())
+                player_doc = {
+                    "id": player_id,
+                    "tournament_id": tournament_id,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": row.get('email', '').strip() or None,
+                    "phone": row.get('phone', '').strip() or None,
+                    "gender": row.get('gender', '').strip().lower() or None,
+                    "age": int(row.get('age', 0)) if row.get('age', '').strip() else None,
+                    "skill_level": row.get('skillLevel', row.get('skill_level', 'intermediate')).strip().lower(),
+                    "sports": [sport] if sport else [],
+                    "rating": int(row.get('rating', 0)) if row.get('rating', '').strip() else None,
+                    "team_name": row.get('teamName', row.get('team_name', '')).strip() or None,
+                    "club": row.get('club', '').strip() or None,
+                    "wins": 0,
+                    "losses": 0,
+                    "matches_played": 0,
+                    "created_at": now
+                }
+                await db.players.insert_one(player_doc)
+                created_count += 1
+                
         except Exception as e:
             errors.append(f"Row {row_num}: {str(e)}")
             skipped_count += 1
     
     return {
-        "message": f"CSV import completed",
+        "message": "CSV import completed",
         "created": created_count,
         "skipped": skipped_count,
-        "errors": errors[:10] if errors else []  # Return first 10 errors
+        "errors": errors[:10]
     }
+
+# ============== RESOURCE ROUTES ==============
+
+@api_router.post("/tournaments/{tournament_id}/resources", response_model=ResourceResponse)
+async def create_resource(tournament_id: str, resource: ResourceCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    if resource.sport not in SPORTS:
+        raise HTTPException(status_code=400, detail=f"Invalid sport. Must be one of: {SPORTS}")
+    
+    resource_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    resource_doc = {
+        "id": resource_id,
+        "tournament_id": tournament_id,
+        "sport": resource.sport,
+        "label": resource.label,
+        "location": resource.location,
+        "resource_type": resource.resource_type,
+        "enabled": resource.enabled,
+        "current_match_id": None,
+        "locked": False,
+        "created_at": now
+    }
+    await db.resources.insert_one(resource_doc)
+    return ResourceResponse(**resource_doc)
+
+@api_router.post("/tournaments/{tournament_id}/resources/bulk-add")
+async def bulk_add_resources(tournament_id: str, sport: str, count: int, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    if sport not in SPORTS:
+        raise HTTPException(status_code=400, detail=f"Invalid sport")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    sport_name = sport.replace('_', ' ').title()
+    resource_type = "table" if sport == "table_tennis" else "court"
+    
+    # Get existing count for numbering
+    existing_count = await db.resources.count_documents({"tournament_id": tournament_id, "sport": sport})
+    
+    created = 0
+    for i in range(count):
+        resource_id = str(uuid.uuid4())
+        label = f"{sport_name} {existing_count + i + 1}"
+        resource_doc = {
+            "id": resource_id,
+            "tournament_id": tournament_id,
+            "sport": sport,
+            "label": label,
+            "location": None,
+            "resource_type": resource_type,
+            "enabled": True,
+            "current_match_id": None,
+            "locked": False,
+            "created_at": now
+        }
+        await db.resources.insert_one(resource_doc)
+        created += 1
+    
+    return {"message": f"Created {created} resources", "created": created}
+
+@api_router.get("/tournaments/{tournament_id}/resources", response_model=List[ResourceResponse])
+async def list_resources(tournament_id: str, sport: Optional[str] = None, current_user: dict = Depends(require_auth)):
+    query = {"tournament_id": tournament_id}
+    if sport and sport != "all":
+        query["sport"] = sport
+    resources = await db.resources.find(query, {"_id": 0}).sort("label", 1).to_list(100)
+    return [ResourceResponse(**r) for r in resources]
+
+@api_router.put("/tournaments/{tournament_id}/resources/{resource_id}")
+async def update_resource(tournament_id: str, resource_id: str, resource: ResourceCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    update_data = resource.model_dump(exclude_unset=True)
+    await db.resources.update_one({"id": resource_id, "tournament_id": tournament_id}, {"$set": update_data})
+    return {"message": "Resource updated"}
+
+@api_router.delete("/tournaments/{tournament_id}/resources/{resource_id}")
+async def delete_resource(tournament_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.resources.delete_one({"id": resource_id, "tournament_id": tournament_id})
+    return {"message": "Resource deleted"}
+
+@api_router.post("/tournaments/{tournament_id}/resources/{resource_id}/lock")
+async def lock_resource(tournament_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.resources.update_one({"id": resource_id}, {"$set": {"locked": True}})
+    return {"message": "Resource locked"}
+
+@api_router.post("/tournaments/{tournament_id}/resources/{resource_id}/unlock")
+async def unlock_resource(tournament_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.resources.update_one({"id": resource_id}, {"$set": {"locked": False}})
+    return {"message": "Resource unlocked"}
+
+# ============== DIVISION ROUTES ==============
+
+@api_router.post("/tournaments/{tournament_id}/divisions", response_model=DivisionResponse)
+async def create_division(tournament_id: str, division: DivisionCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    division_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    division_doc = {
+        "id": division_id,
+        "tournament_id": tournament_id,
+        "name": division.name,
+        "description": division.description,
+        "eligibility": division.eligibility,
+        "created_at": now
+    }
+    await db.divisions.insert_one(division_doc)
+    return DivisionResponse(**division_doc)
+
+@api_router.get("/tournaments/{tournament_id}/divisions", response_model=List[DivisionResponse])
+async def list_divisions(tournament_id: str, current_user: dict = Depends(require_auth)):
+    divisions = await db.divisions.find({"tournament_id": tournament_id}, {"_id": 0}).to_list(100)
+    return [DivisionResponse(**d) for d in divisions]
+
+@api_router.get("/tournaments/{tournament_id}/divisions/{division_id}", response_model=DivisionResponse)
+async def get_division(tournament_id: str, division_id: str, current_user: dict = Depends(require_auth)):
+    division = await db.divisions.find_one({"id": division_id, "tournament_id": tournament_id}, {"_id": 0})
+    if not division:
+        raise HTTPException(status_code=404, detail="Division not found")
+    return DivisionResponse(**division)
+
+@api_router.put("/tournaments/{tournament_id}/divisions/{division_id}")
+async def update_division(tournament_id: str, division_id: str, division: DivisionCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    update_data = division.model_dump(exclude_unset=True)
+    await db.divisions.update_one({"id": division_id}, {"$set": update_data})
+    return {"message": "Division updated"}
+
+@api_router.delete("/tournaments/{tournament_id}/divisions/{division_id}")
+async def delete_division(tournament_id: str, division_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.divisions.delete_one({"id": division_id})
+    return {"message": "Division deleted"}
 
 # ============== TEAM ROUTES ==============
 
-@api_router.post("/teams", response_model=TeamResponse)
-async def create_team(team: TeamCreate, current_user: dict = Depends(get_current_user)):
+@api_router.post("/tournaments/{tournament_id}/teams", response_model=TeamResponse)
+async def create_team(tournament_id: str, team: TeamCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
     team_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    
     team_doc = {
         "id": team_id,
+        "tournament_id": tournament_id,
         "name": team.name,
-        "sport": team.sport,
         "player_ids": team.player_ids,
+        "sport": team.sport,
         "wins": 0,
         "losses": 0,
-        "created_by": current_user["id"],
         "created_at": now
     }
     await db.teams.insert_one(team_doc)
     
-    # Fetch player details
-    players = await db.players.find({"id": {"$in": team.player_ids}}, {"_id": 0, "first_name": 1, "last_name": 1, "id": 1}).to_list(10)
+    # Fetch player names
+    players = await db.players.find({"id": {"$in": team.player_ids}}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}).to_list(10)
     players_formatted = [{"id": p["id"], "name": f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()} for p in players]
     
-    return TeamResponse(
-        id=team_id,
-        name=team.name,
-        sport=team.sport,
-        player_ids=team.player_ids,
-        players=players_formatted,
-        wins=0,
-        losses=0,
-        created_at=now
-    )
+    return TeamResponse(**team_doc, players=players_formatted)
 
-@api_router.get("/teams", response_model=List[TeamResponse])
-async def get_teams(sport: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    query = {}
+@api_router.get("/tournaments/{tournament_id}/teams", response_model=List[TeamResponse])
+async def list_teams(tournament_id: str, sport: Optional[str] = None, current_user: dict = Depends(require_auth)):
+    query = {"tournament_id": tournament_id}
     if sport:
         query["sport"] = sport
-    teams = await db.teams.find(query, {"_id": 0, "created_by": 0}).to_list(1000)
+    teams = await db.teams.find(query, {"_id": 0}).to_list(100)
     
-    # Fetch player details for each team
     result = []
     for team in teams:
-        players = await db.players.find({"id": {"$in": team.get("player_ids", [])}}, {"_id": 0, "first_name": 1, "last_name": 1, "id": 1}).to_list(10)
+        players = await db.players.find({"id": {"$in": team.get("player_ids", [])}}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}).to_list(10)
         team["players"] = [{"id": p["id"], "name": f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()} for p in players]
         result.append(TeamResponse(**team))
     return result
 
-@api_router.delete("/teams/{team_id}")
-async def delete_team(team_id: str, current_user: dict = Depends(get_current_user)):
-    result = await db.teams.delete_one({"id": team_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Team not found")
+@api_router.delete("/tournaments/{tournament_id}/teams/{team_id}")
+async def delete_team(tournament_id: str, team_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.teams.delete_one({"id": team_id})
     return {"message": "Team deleted"}
 
-# ============== RESOURCE ROUTES ==============
-
-@api_router.post("/resources", response_model=ResourceResponse)
-async def create_resource(resource: ResourceCreate, current_user: dict = Depends(get_current_user)):
-    resource_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    resource_doc = {
-        "id": resource_id,
-        "name": resource.name,
-        "resource_type": resource.resource_type,
-        "sport": resource.sport,
-        "location": resource.location,
-        "status": resource.status,
-        "created_by": current_user["id"],
-        "created_at": now
-    }
-    await db.resources.insert_one(resource_doc)
-    return ResourceResponse(**{k: v for k, v in resource_doc.items() if k != "created_by"})
-
-@api_router.get("/resources", response_model=List[ResourceResponse])
-async def get_resources(sport: Optional[str] = None, status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    query = {}
-    if sport:
-        query["sport"] = sport
-    if status:
-        query["status"] = status
-    resources = await db.resources.find(query, {"_id": 0, "created_by": 0}).to_list(1000)
-    return [ResourceResponse(**r) for r in resources]
-
-@api_router.put("/resources/{resource_id}", response_model=ResourceResponse)
-async def update_resource(resource_id: str, resource: ResourceCreate, current_user: dict = Depends(get_current_user)):
-    existing = await db.resources.find_one({"id": resource_id})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Resource not found")
+@api_router.post("/tournaments/{tournament_id}/teams/auto-pair")
+async def auto_pair_players(
+    tournament_id: str, 
+    sport: str, 
+    max_teams: int = 16,
+    strategy: str = "random",  # random, balanced, avoid_same_club
+    current_user: dict = Depends(require_auth)
+):
+    require_admin(current_user)
     
-    update_data = resource.model_dump(exclude_unset=True)
-    await db.resources.update_one({"id": resource_id}, {"$set": update_data})
-    updated = await db.resources.find_one({"id": resource_id}, {"_id": 0, "created_by": 0})
-    return ResourceResponse(**updated)
-
-@api_router.delete("/resources/{resource_id}")
-async def delete_resource(resource_id: str, current_user: dict = Depends(get_current_user)):
-    result = await db.resources.delete_one({"id": resource_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Resource not found")
-    return {"message": "Resource deleted"}
-
-# ============== TOURNAMENT ROUTES ==============
-
-@api_router.post("/tournaments", response_model=TournamentResponse)
-async def create_tournament(tournament: TournamentCreate, current_user: dict = Depends(get_current_user)):
-    tournament_id = str(uuid.uuid4())
+    # Get available players for the sport
+    players = await db.players.find({"tournament_id": tournament_id, "sports": sport}, {"_id": 0}).to_list(1000)
+    
+    if len(players) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 players")
+    
+    random.shuffle(players)
+    
+    if strategy == "balanced":
+        players.sort(key=lambda p: p.get("rating", 0) or 0, reverse=True)
+    
+    teams_created = []
     now = datetime.now(timezone.utc).isoformat()
-    tournament_doc = {
-        "id": tournament_id,
-        "name": tournament.name,
-        "sport": tournament.sport,
-        "format": tournament.format,
-        "match_type": tournament.match_type,
-        "start_date": tournament.start_date,
-        "end_date": tournament.end_date,
-        "max_participants": tournament.max_participants,
-        "description": tournament.description,
+    used_player_ids = set()
+    
+    for i in range(0, min(len(players) - 1, max_teams * 2), 2):
+        if len(teams_created) >= max_teams:
+            break
+            
+        p1, p2 = players[i], players[i + 1]
+        
+        if strategy == "avoid_same_club" and p1.get("club") and p1.get("club") == p2.get("club"):
+            # Try to find a different partner
+            for j in range(i + 2, len(players)):
+                if players[j]["id"] not in used_player_ids and players[j].get("club") != p1.get("club"):
+                    p2 = players[j]
+                    break
+        
+        if p1["id"] in used_player_ids or p2["id"] in used_player_ids:
+            continue
+            
+        team_id = str(uuid.uuid4())
+        name1 = f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip()
+        name2 = f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip()
+        team_name = f"{name1} / {name2}"
+        
+        team_doc = {
+            "id": team_id,
+            "tournament_id": tournament_id,
+            "name": team_name,
+            "player_ids": [p1["id"], p2["id"]],
+            "sport": sport,
+            "wins": 0,
+            "losses": 0,
+            "created_at": now
+        }
+        await db.teams.insert_one(team_doc)
+        teams_created.append(team_doc)
+        used_player_ids.add(p1["id"])
+        used_player_ids.add(p2["id"])
+    
+    return {"message": f"Created {len(teams_created)} teams", "teams": len(teams_created)}
+
+@api_router.post("/tournaments/{tournament_id}/teams/swap")
+async def swap_team_players(
+    tournament_id: str,
+    team1_id: str,
+    player1_id: str,
+    team2_id: str,
+    player2_id: str,
+    current_user: dict = Depends(require_auth)
+):
+    require_admin(current_user)
+    
+    team1 = await db.teams.find_one({"id": team1_id}, {"_id": 0})
+    team2 = await db.teams.find_one({"id": team2_id}, {"_id": 0})
+    
+    if not team1 or not team2:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    # Swap players
+    team1_players = [p if p != player1_id else player2_id for p in team1["player_ids"]]
+    team2_players = [p if p != player2_id else player1_id for p in team2["player_ids"]]
+    
+    await db.teams.update_one({"id": team1_id}, {"$set": {"player_ids": team1_players}})
+    await db.teams.update_one({"id": team2_id}, {"$set": {"player_ids": team2_players}})
+    
+    return {"message": "Players swapped"}
+
+# ============== COMPETITION ROUTES ==============
+
+@api_router.post("/tournaments/{tournament_id}/competitions", response_model=CompetitionResponse)
+async def create_competition(tournament_id: str, competition: CompetitionCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    if competition.sport not in SPORTS:
+        raise HTTPException(status_code=400, detail=f"Invalid sport")
+    if competition.format not in FORMATS:
+        raise HTTPException(status_code=400, detail=f"Invalid format")
+    
+    competition_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    scoring = competition.scoring_rules.model_dump() if competition.scoring_rules else ScoringRules().model_dump()
+    
+    competition_doc = {
+        "id": competition_id,
+        "tournament_id": tournament_id,
+        "division_id": competition.division_id,
+        "name": competition.name,
+        "sport": competition.sport,
+        "discipline": competition.discipline,
+        "format": competition.format,
+        "participant_type": competition.participant_type,
+        "num_groups": competition.num_groups,
+        "advance_per_group": competition.advance_per_group,
+        "scoring_rules": scoring,
         "status": "draft",
         "participant_ids": [],
-        "sets_to_win": tournament.sets_to_win,
-        "points_per_set": tournament.points_per_set,
-        "created_by": current_user["id"],
         "created_at": now
     }
-    await db.tournaments.insert_one(tournament_doc)
-    return TournamentResponse(**{k: v for k, v in tournament_doc.items() if k != "created_by"})
+    await db.competitions.insert_one(competition_doc)
+    return CompetitionResponse(**competition_doc)
 
-@api_router.get("/tournaments", response_model=List[TournamentResponse])
-async def get_tournaments(sport: Optional[str] = None, status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    query = {}
-    if sport:
-        query["sport"] = sport
-    if status:
-        query["status"] = status
-    tournaments = await db.tournaments.find(query, {"_id": 0, "created_by": 0}).to_list(1000)
-    return [TournamentResponse(**t) for t in tournaments]
+@api_router.get("/tournaments/{tournament_id}/competitions", response_model=List[CompetitionResponse])
+async def list_competitions(tournament_id: str, division_id: Optional[str] = None, current_user: dict = Depends(require_auth)):
+    query = {"tournament_id": tournament_id}
+    if division_id:
+        query["division_id"] = division_id
+    competitions = await db.competitions.find(query, {"_id": 0}).to_list(100)
+    return [CompetitionResponse(**c) for c in competitions]
 
-@api_router.get("/tournaments/{tournament_id}", response_model=TournamentResponse)
-async def get_tournament(tournament_id: str, current_user: dict = Depends(get_current_user)):
-    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0, "created_by": 0})
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    return TournamentResponse(**tournament)
+@api_router.get("/tournaments/{tournament_id}/competitions/{competition_id}", response_model=CompetitionResponse)
+async def get_competition(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    return CompetitionResponse(**competition)
 
-@api_router.put("/tournaments/{tournament_id}", response_model=TournamentResponse)
-async def update_tournament(tournament_id: str, tournament: TournamentCreate, current_user: dict = Depends(get_current_user)):
-    existing = await db.tournaments.find_one({"id": tournament_id})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    
-    update_data = tournament.model_dump(exclude_unset=True)
-    await db.tournaments.update_one({"id": tournament_id}, {"$set": update_data})
-    updated = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0, "created_by": 0})
-    return TournamentResponse(**updated)
+@api_router.put("/tournaments/{tournament_id}/competitions/{competition_id}")
+async def update_competition(tournament_id: str, competition_id: str, competition: CompetitionCreate, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    update_data = competition.model_dump(exclude_unset=True)
+    if competition.scoring_rules:
+        update_data["scoring_rules"] = competition.scoring_rules.model_dump()
+    await db.competitions.update_one({"id": competition_id}, {"$set": update_data})
+    return {"message": "Competition updated"}
 
-@api_router.post("/tournaments/{tournament_id}/participants/{participant_id}")
-async def add_participant(tournament_id: str, participant_id: str, current_user: dict = Depends(get_current_user)):
-    tournament = await db.tournaments.find_one({"id": tournament_id})
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
+@api_router.delete("/tournaments/{tournament_id}/competitions/{competition_id}")
+async def delete_competition(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.matches.delete_many({"competition_id": competition_id})
+    await db.competitions.delete_one({"id": competition_id})
+    return {"message": "Competition deleted"}
+
+# Participant management
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/participants")
+async def add_participant(tournament_id: str, competition_id: str, participant_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
     
-    if participant_id in tournament.get("participant_ids", []):
-        raise HTTPException(status_code=400, detail="Participant already registered")
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
     
-    if len(tournament.get("participant_ids", [])) >= tournament.get("max_participants", 32):
-        raise HTTPException(status_code=400, detail="Tournament is full")
+    if participant_id in competition.get("participant_ids", []):
+        raise HTTPException(status_code=400, detail="Participant already added")
     
-    await db.tournaments.update_one(
-        {"id": tournament_id},
-        {"$push": {"participant_ids": participant_id}, "$set": {"status": "registration"}}
-    )
+    await db.competitions.update_one({"id": competition_id}, {"$push": {"participant_ids": participant_id}})
     return {"message": "Participant added"}
 
-@api_router.delete("/tournaments/{tournament_id}/participants/{participant_id}")
-async def remove_participant(tournament_id: str, participant_id: str, current_user: dict = Depends(get_current_user)):
-    tournament = await db.tournaments.find_one({"id": tournament_id})
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/participants/bulk")
+async def bulk_add_participants(tournament_id: str, competition_id: str, participant_ids: List[str], current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
     
-    await db.tournaments.update_one(
-        {"id": tournament_id},
-        {"$pull": {"participant_ids": participant_id}}
-    )
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    existing = set(competition.get("participant_ids", []))
+    new_ids = [p for p in participant_ids if p not in existing]
+    
+    if new_ids:
+        await db.competitions.update_one({"id": competition_id}, {"$push": {"participant_ids": {"$each": new_ids}}})
+    
+    return {"message": f"Added {len(new_ids)} participants"}
+
+@api_router.delete("/tournaments/{tournament_id}/competitions/{competition_id}/participants/{participant_id}")
+async def remove_participant(tournament_id: str, competition_id: str, participant_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.competitions.update_one({"id": competition_id}, {"$pull": {"participant_ids": participant_id}})
     return {"message": "Participant removed"}
 
-@api_router.get("/tournaments/{tournament_id}/participants")
-async def get_tournament_participants(tournament_id: str, current_user: dict = Depends(get_current_user)):
-    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
+@api_router.get("/tournaments/{tournament_id}/competitions/{competition_id}/participants")
+async def get_participants(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
     
-    participant_ids = tournament.get("participant_ids", [])
-    match_type = tournament.get("match_type", "singles")
+    participant_ids = competition.get("participant_ids", [])
+    participant_type = competition.get("participant_type", "single")
     
-    if match_type == "singles":
+    if participant_type == "single":
         participants = await db.players.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(100)
-        # Format player names
         for p in participants:
             p["name"] = f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
     else:
         participants = await db.teams.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(100)
-        for p in participants:
-            players = await db.players.find({"id": {"$in": p.get("player_ids", [])}}, {"_id": 0, "first_name": 1, "last_name": 1, "id": 1}).to_list(10)
-            p["players"] = [{"id": pl["id"], "name": f"{pl.get('first_name', '')} {pl.get('last_name', '')}".strip()} for pl in players]
     
     return participants
 
-# ============== BRACKET GENERATION ==============
+# Draw generation
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/generate-draw")
+async def generate_draw(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    participant_ids = competition.get("participant_ids", [])
+    if len(participant_ids) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 participants")
+    
+    # Delete existing matches
+    await db.matches.delete_many({"competition_id": competition_id})
+    
+    format_type = competition.get("format", "round_robin")
+    num_groups = competition.get("num_groups", 1)
+    
+    matches = []
+    now = datetime.now(timezone.utc).isoformat()
+    
+    if format_type == "round_robin":
+        matches = generate_round_robin_matches(participant_ids, competition_id, tournament_id, now)
+    elif format_type == "single_elimination":
+        matches = generate_single_elimination_matches(participant_ids, competition_id, tournament_id, now)
+    elif format_type == "double_elimination":
+        matches = generate_double_elimination_matches(participant_ids, competition_id, tournament_id, now)
+    elif format_type == "groups_knockout":
+        matches = generate_groups_knockout_matches(participant_ids, competition_id, tournament_id, num_groups, now)
+    
+    if matches:
+        await db.matches.insert_many(matches)
+    
+    await db.competitions.update_one({"id": competition_id}, {"$set": {"status": "draw_generated"}})
+    
+    return {"message": f"Generated {len(matches)} matches", "match_count": len(matches)}
 
-def generate_single_elimination_bracket(participant_ids: List[str], tournament_id: str) -> List[dict]:
-    """Generate single elimination bracket matches"""
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/reset-draw")
+async def reset_draw(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    await db.matches.delete_many({"competition_id": competition_id})
+    await db.competitions.update_one({"id": competition_id}, {"$set": {"status": "draft"}})
+    return {"message": "Draw reset"}
+
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/generate-knockout")
+async def generate_knockout(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    require_admin(current_user)
+    
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    # Get standings from group stage
+    standings = await calculate_standings(competition_id, competition.get("num_groups", 1))
+    
+    # Get top N from each group
+    advance_per_group = competition.get("advance_per_group", 2)
+    qualifiers = []
+    
+    for group_num in range(1, competition.get("num_groups", 1) + 1):
+        group_standings = [s for s in standings if s.get("group_number") == group_num]
+        group_standings.sort(key=lambda x: (-x.get("wins", 0), -(x.get("points_for", 0) - x.get("points_against", 0))))
+        qualifiers.extend([s["participant_id"] for s in group_standings[:advance_per_group]])
+    
+    # Generate knockout bracket
+    now = datetime.now(timezone.utc).isoformat()
+    knockout_matches = generate_single_elimination_matches(qualifiers, competition_id, tournament_id, now, round_offset=100)
+    
+    if knockout_matches:
+        await db.matches.insert_many(knockout_matches)
+    
+    return {"message": f"Generated {len(knockout_matches)} knockout matches", "qualifiers": len(qualifiers)}
+
+# ============== DRAW GENERATION ALGORITHMS ==============
+
+def generate_round_robin_matches(participant_ids: List[str], competition_id: str, tournament_id: str, now: str) -> List[dict]:
+    matches = []
+    participants = participant_ids.copy()
+    n = len(participants)
+    match_number = 1
+    
+    # Round-robin scheduling
+    for i in range(n):
+        for j in range(i + 1, n):
+            match_id = str(uuid.uuid4())
+            match = {
+                "id": match_id,
+                "tournament_id": tournament_id,
+                "competition_id": competition_id,
+                "round_number": 1,
+                "match_number": match_number,
+                "group_number": 1,
+                "participant1_id": participants[i],
+                "participant2_id": participants[j],
+                "winner_id": None,
+                "resource_id": None,
+                "scheduled_time": None,
+                "status": "pending",
+                "scores": [],
+                "bracket_position": f"RR-M{match_number}",
+                "next_match_id": None,
+                "created_at": now
+            }
+            matches.append(match)
+            match_number += 1
+    
+    return matches
+
+def generate_single_elimination_matches(participant_ids: List[str], competition_id: str, tournament_id: str, now: str, round_offset: int = 0) -> List[dict]:
     matches = []
     participants = participant_ids.copy()
     random.shuffle(participants)
     
-    # Calculate number of rounds
     n = len(participants)
     rounds = math.ceil(math.log2(n)) if n > 1 else 1
     bracket_size = 2 ** rounds
@@ -693,12 +1184,13 @@ def generate_single_elimination_bracket(participant_ids: List[str], tournament_i
     # First round
     for i in range(0, len(participants), 2):
         match_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
         match = {
             "id": match_id,
             "tournament_id": tournament_id,
-            "round_number": 1,
+            "competition_id": competition_id,
+            "round_number": 1 + round_offset,
             "match_number": match_number,
+            "group_number": None,
             "participant1_id": participants[i],
             "participant2_id": participants[i+1] if i+1 < len(participants) else None,
             "winner_id": None,
@@ -706,13 +1198,12 @@ def generate_single_elimination_bracket(participant_ids: List[str], tournament_i
             "scheduled_time": None,
             "status": "pending",
             "scores": [],
-            "current_set": 1,
-            "bracket_position": f"R1-M{match_number}",
+            "bracket_position": f"R{1 + round_offset}-M{match_number}",
             "next_match_id": None,
             "created_at": now
         }
         
-        # Auto-advance if bye
+        # Auto-advance byes
         if match["participant2_id"] is None and match["participant1_id"]:
             match["winner_id"] = match["participant1_id"]
             match["status"] = "completed"
@@ -724,19 +1215,20 @@ def generate_single_elimination_bracket(participant_ids: List[str], tournament_i
         current_round_matches.append(match)
         match_number += 1
     
-    # Generate subsequent rounds
+    # Subsequent rounds
     for round_num in range(2, rounds + 1):
         prev_round_matches = current_round_matches
         current_round_matches = []
         
         for i in range(0, len(prev_round_matches), 2):
             match_id = str(uuid.uuid4())
-            now = datetime.now(timezone.utc).isoformat()
             match = {
                 "id": match_id,
                 "tournament_id": tournament_id,
-                "round_number": round_num,
+                "competition_id": competition_id,
+                "round_number": round_num + round_offset,
                 "match_number": match_number,
+                "group_number": None,
                 "participant1_id": None,
                 "participant2_id": None,
                 "winner_id": None,
@@ -744,16 +1236,13 @@ def generate_single_elimination_bracket(participant_ids: List[str], tournament_i
                 "scheduled_time": None,
                 "status": "pending",
                 "scores": [],
-                "current_set": 1,
-                "bracket_position": f"R{round_num}-M{match_number}",
+                "bracket_position": f"R{round_num + round_offset}-M{match_number}",
                 "next_match_id": None,
                 "created_at": now
             }
             
-            # Link previous matches
             if i < len(prev_round_matches):
                 prev_round_matches[i]["next_match_id"] = match_id
-                # If previous match has winner (due to bye), set participant
                 if prev_round_matches[i]["winner_id"]:
                     match["participant1_id"] = prev_round_matches[i]["winner_id"]
             if i + 1 < len(prev_round_matches):
@@ -767,147 +1256,25 @@ def generate_single_elimination_bracket(participant_ids: List[str], tournament_i
     
     return matches
 
-def generate_round_robin_bracket(participant_ids: List[str], tournament_id: str) -> List[dict]:
-    """Generate round robin matches - everyone plays everyone"""
-    matches = []
-    participants = participant_ids.copy()
-    n = len(participants)
+def generate_double_elimination_matches(participant_ids: List[str], competition_id: str, tournament_id: str, now: str) -> List[dict]:
+    # Similar to single elimination but with losers bracket
+    # Simplified implementation - just generate winners bracket + placeholder losers matches
+    winners_matches = generate_single_elimination_matches(participant_ids, competition_id, tournament_id, now)
     
-    match_number = 1
-    round_number = 1
+    # Add losers bracket placeholder
+    match_number = len(winners_matches) + 1
+    losers_matches = []
     
-    for i in range(n):
-        for j in range(i + 1, n):
-            match_id = str(uuid.uuid4())
-            now = datetime.now(timezone.utc).isoformat()
-            match = {
-                "id": match_id,
-                "tournament_id": tournament_id,
-                "round_number": round_number,
-                "match_number": match_number,
-                "participant1_id": participants[i],
-                "participant2_id": participants[j],
-                "winner_id": None,
-                "resource_id": None,
-                "scheduled_time": None,
-                "status": "pending",
-                "scores": [],
-                "current_set": 1,
-                "bracket_position": f"RR-M{match_number}",
-                "next_match_id": None,
-                "created_at": now
-            }
-            matches.append(match)
-            match_number += 1
-            
-            # Group into rounds
-            if match_number % (n // 2 + 1) == 0:
-                round_number += 1
-    
-    return matches
-
-def generate_double_elimination_bracket(participant_ids: List[str], tournament_id: str) -> List[dict]:
-    """Generate double elimination bracket - winners and losers bracket"""
-    matches = []
-    participants = participant_ids.copy()
-    random.shuffle(participants)
-    
-    n = len(participants)
-    rounds = math.ceil(math.log2(n)) if n > 1 else 1
-    bracket_size = 2 ** rounds
-    
-    byes_needed = bracket_size - n
-    participants.extend([None] * byes_needed)
-    
-    match_number = 1
-    
-    # Winners bracket first round
-    winners_r1_matches = []
-    for i in range(0, len(participants), 2):
+    num_losers_rounds = max(1, len(participant_ids) // 4)
+    for r in range(num_losers_rounds):
         match_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
-        match = {
+        losers_matches.append({
             "id": match_id,
             "tournament_id": tournament_id,
-            "round_number": 1,
+            "competition_id": competition_id,
+            "round_number": r + 1,
             "match_number": match_number,
-            "participant1_id": participants[i],
-            "participant2_id": participants[i+1] if i+1 < len(participants) else None,
-            "winner_id": None,
-            "resource_id": None,
-            "scheduled_time": None,
-            "status": "pending",
-            "scores": [],
-            "current_set": 1,
-            "bracket_position": f"W-R1-M{match_number}",
-            "bracket_type": "winners",
-            "next_match_id": None,
-            "loser_next_match_id": None,
-            "created_at": now
-        }
-        
-        if match["participant2_id"] is None and match["participant1_id"]:
-            match["winner_id"] = match["participant1_id"]
-            match["status"] = "completed"
-        elif match["participant1_id"] is None and match["participant2_id"]:
-            match["winner_id"] = match["participant2_id"]
-            match["status"] = "completed"
-        
-        matches.append(match)
-        winners_r1_matches.append(match)
-        match_number += 1
-    
-    # Generate more winners bracket rounds
-    current_winners = winners_r1_matches
-    for round_num in range(2, rounds + 1):
-        next_winners = []
-        for i in range(0, len(current_winners), 2):
-            match_id = str(uuid.uuid4())
-            now = datetime.now(timezone.utc).isoformat()
-            match = {
-                "id": match_id,
-                "tournament_id": tournament_id,
-                "round_number": round_num,
-                "match_number": match_number,
-                "participant1_id": None,
-                "participant2_id": None,
-                "winner_id": None,
-                "resource_id": None,
-                "scheduled_time": None,
-                "status": "pending",
-                "scores": [],
-                "current_set": 1,
-                "bracket_position": f"W-R{round_num}-M{match_number}",
-                "bracket_type": "winners",
-                "next_match_id": None,
-                "loser_next_match_id": None,
-                "created_at": now
-            }
-            
-            if i < len(current_winners):
-                current_winners[i]["next_match_id"] = match_id
-                if current_winners[i]["winner_id"]:
-                    match["participant1_id"] = current_winners[i]["winner_id"]
-            if i + 1 < len(current_winners):
-                current_winners[i + 1]["next_match_id"] = match_id
-                if current_winners[i + 1]["winner_id"]:
-                    match["participant2_id"] = current_winners[i + 1]["winner_id"]
-            
-            matches.append(match)
-            next_winners.append(match)
-            match_number += 1
-        current_winners = next_winners
-    
-    # Simplified losers bracket (first round from winners losers)
-    losers_matches_count = max(1, len(winners_r1_matches) // 2)
-    for i in range(losers_matches_count):
-        match_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
-        match = {
-            "id": match_id,
-            "tournament_id": tournament_id,
-            "round_number": 1,
-            "match_number": match_number,
+            "group_number": None,
             "participant1_id": None,
             "participant2_id": None,
             "winner_id": None,
@@ -915,23 +1282,22 @@ def generate_double_elimination_bracket(participant_ids: List[str], tournament_i
             "scheduled_time": None,
             "status": "pending",
             "scores": [],
-            "current_set": 1,
-            "bracket_position": f"L-R1-M{match_number}",
+            "bracket_position": f"L-R{r+1}-M{match_number}",
             "bracket_type": "losers",
             "next_match_id": None,
             "created_at": now
-        }
-        matches.append(match)
+        })
         match_number += 1
     
-    # Grand finals
-    match_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    grand_final = {
-        "id": match_id,
+    # Grand final
+    grand_final_id = str(uuid.uuid4())
+    losers_matches.append({
+        "id": grand_final_id,
         "tournament_id": tournament_id,
-        "round_number": rounds + 1,
+        "competition_id": competition_id,
+        "round_number": 999,
         "match_number": match_number,
+        "group_number": None,
         "participant1_id": None,
         "participant2_id": None,
         "winner_id": None,
@@ -939,120 +1305,191 @@ def generate_double_elimination_bracket(participant_ids: List[str], tournament_i
         "scheduled_time": None,
         "status": "pending",
         "scores": [],
-        "current_set": 1,
         "bracket_position": "Grand-Final",
         "bracket_type": "final",
         "next_match_id": None,
         "created_at": now
-    }
-    matches.append(grand_final)
+    })
+    
+    return winners_matches + losers_matches
+
+def generate_groups_knockout_matches(participant_ids: List[str], competition_id: str, tournament_id: str, num_groups: int, now: str) -> List[dict]:
+    matches = []
+    participants = participant_ids.copy()
+    random.shuffle(participants)
+    
+    # Distribute to groups
+    groups = [[] for _ in range(num_groups)]
+    for i, p in enumerate(participants):
+        groups[i % num_groups].append(p)
+    
+    match_number = 1
+    
+    # Generate round-robin within each group
+    for group_num, group_participants in enumerate(groups, start=1):
+        n = len(group_participants)
+        for i in range(n):
+            for j in range(i + 1, n):
+                match_id = str(uuid.uuid4())
+                match = {
+                    "id": match_id,
+                    "tournament_id": tournament_id,
+                    "competition_id": competition_id,
+                    "round_number": 1,
+                    "match_number": match_number,
+                    "group_number": group_num,
+                    "participant1_id": group_participants[i],
+                    "participant2_id": group_participants[j],
+                    "winner_id": None,
+                    "resource_id": None,
+                    "scheduled_time": None,
+                    "status": "pending",
+                    "scores": [],
+                    "bracket_position": f"G{group_num}-M{match_number}",
+                    "next_match_id": None,
+                    "created_at": now
+                }
+                matches.append(match)
+                match_number += 1
     
     return matches
 
-@api_router.post("/tournaments/{tournament_id}/generate-bracket")
-async def generate_bracket(tournament_id: str, current_user: dict = Depends(get_current_user)):
-    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
+async def calculate_standings(competition_id: str, num_groups: int) -> List[dict]:
+    matches = await db.matches.find({"competition_id": competition_id, "status": "completed"}, {"_id": 0}).to_list(1000)
     
-    participant_ids = tournament.get("participant_ids", [])
-    if len(participant_ids) < 2:
-        raise HTTPException(status_code=400, detail="Need at least 2 participants")
+    standings = {}
     
-    # Delete existing matches
-    await db.matches.delete_many({"tournament_id": tournament_id})
+    for match in matches:
+        p1_id = match.get("participant1_id")
+        p2_id = match.get("participant2_id")
+        winner_id = match.get("winner_id")
+        group_num = match.get("group_number", 1)
+        
+        for pid in [p1_id, p2_id]:
+            if pid and pid not in standings:
+                standings[pid] = {
+                    "participant_id": pid,
+                    "group_number": group_num,
+                    "played": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "sets_for": 0,
+                    "sets_against": 0,
+                    "points_for": 0,
+                    "points_against": 0
+                }
+        
+        if p1_id and p2_id:
+            standings[p1_id]["played"] += 1
+            standings[p2_id]["played"] += 1
+            
+            if winner_id == p1_id:
+                standings[p1_id]["wins"] += 1
+                standings[p2_id]["losses"] += 1
+            elif winner_id == p2_id:
+                standings[p2_id]["wins"] += 1
+                standings[p1_id]["losses"] += 1
+            
+            # Calculate sets/points from scores
+            for score in match.get("scores", []):
+                s1 = score.get("score1", 0)
+                s2 = score.get("score2", 0)
+                standings[p1_id]["points_for"] += s1
+                standings[p1_id]["points_against"] += s2
+                standings[p2_id]["points_for"] += s2
+                standings[p2_id]["points_against"] += s1
+                
+                if s1 > s2:
+                    standings[p1_id]["sets_for"] += 1
+                    standings[p2_id]["sets_against"] += 1
+                elif s2 > s1:
+                    standings[p2_id]["sets_for"] += 1
+                    standings[p1_id]["sets_against"] += 1
     
-    # Generate bracket based on format
-    format_type = tournament.get("format", "single_elimination")
-    if format_type == "single_elimination":
-        matches = generate_single_elimination_bracket(participant_ids, tournament_id)
-    elif format_type == "double_elimination":
-        matches = generate_double_elimination_bracket(participant_ids, tournament_id)
-    elif format_type == "round_robin":
-        matches = generate_round_robin_bracket(participant_ids, tournament_id)
-    else:
-        matches = generate_single_elimination_bracket(participant_ids, tournament_id)
-    
-    # Insert matches
-    if matches:
-        await db.matches.insert_many(matches)
-    
-    # Update tournament status
-    await db.tournaments.update_one({"id": tournament_id}, {"$set": {"status": "in_progress"}})
-    
-    return {"message": f"Generated {len(matches)} matches", "match_count": len(matches)}
+    return list(standings.values())
 
 # ============== MATCH ROUTES ==============
 
-@api_router.get("/tournaments/{tournament_id}/matches", response_model=List[MatchResponse])
-async def get_tournament_matches(tournament_id: str, current_user: dict = Depends(get_current_user)):
-    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
+@api_router.get("/tournaments/{tournament_id}/competitions/{competition_id}/matches", response_model=List[MatchResponse])
+async def list_matches(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
     
-    matches = await db.matches.find({"tournament_id": tournament_id}, {"_id": 0}).to_list(1000)
+    matches = await db.matches.find({"competition_id": competition_id}, {"_id": 0}).to_list(1000)
     
-    match_type = tournament.get("match_type", "singles")
-    collection = "players" if match_type == "singles" else "teams"
+    participant_type = competition.get("participant_type", "single")
+    collection = "players" if participant_type == "single" else "teams"
     
-    # Enrich with participant details
     result = []
     for match in matches:
         if match.get("participant1_id"):
-            p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0, "first_name": 1, "last_name": 1, "name": 1, "id": 1})
+            p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0})
             if p1:
                 p1["name"] = p1.get("name") or f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip()
             match["participant1"] = p1
         if match.get("participant2_id"):
-            p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0, "first_name": 1, "last_name": 1, "name": 1, "id": 1})
+            p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0})
             if p2:
                 p2["name"] = p2.get("name") or f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip()
             match["participant2"] = p2
+        if match.get("resource_id"):
+            resource = await db.resources.find_one({"id": match["resource_id"]}, {"_id": 0, "id": 1, "label": 1, "sport": 1})
+            match["resource"] = resource
         result.append(MatchResponse(**match))
     
     return result
 
-@api_router.get("/matches/{match_id}", response_model=MatchResponse)
-async def get_match(match_id: str, current_user: dict = Depends(get_current_user)):
+@api_router.get("/tournaments/{tournament_id}/matches/{match_id}", response_model=MatchResponse)
+async def get_match(tournament_id: str, match_id: str, current_user: dict = Depends(require_auth)):
     match = await db.matches.find_one({"id": match_id}, {"_id": 0})
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     
-    tournament = await db.tournaments.find_one({"id": match["tournament_id"]}, {"_id": 0})
-    match_type = tournament.get("match_type", "singles") if tournament else "singles"
-    collection = "players" if match_type == "singles" else "teams"
+    competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
+    participant_type = competition.get("participant_type", "single") if competition else "single"
+    collection = "players" if participant_type == "single" else "teams"
     
     if match.get("participant1_id"):
-        p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0, "first_name": 1, "last_name": 1, "name": 1, "id": 1})
+        p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0})
         if p1:
             p1["name"] = p1.get("name") or f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip()
         match["participant1"] = p1
     if match.get("participant2_id"):
-        p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0, "first_name": 1, "last_name": 1, "name": 1, "id": 1})
+        p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0})
         if p2:
             p2["name"] = p2.get("name") or f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip()
         match["participant2"] = p2
+    if match.get("resource_id"):
+        resource = await db.resources.find_one({"id": match["resource_id"]}, {"_id": 0})
+        match["resource"] = resource
     
     return MatchResponse(**match)
 
-@api_router.put("/matches/{match_id}", response_model=MatchResponse)
-async def update_match(match_id: str, update: MatchUpdate, current_user: dict = Depends(get_current_user)):
+@api_router.put("/tournaments/{tournament_id}/matches/{match_id}")
+async def update_match(tournament_id: str, match_id: str, update: MatchUpdate, current_user: dict = Depends(require_auth)):
+    require_scorekeeper_or_admin(current_user)
+    
     match = await db.matches.find_one({"id": match_id}, {"_id": 0})
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     
     update_data = {}
-    if update.status is not None:
+    
+    if update.status:
         update_data["status"] = update.status
-    if update.scores is not None:
+    if update.scores:
         update_data["scores"] = [s.model_dump() for s in update.scores]
-    if update.current_set is not None:
-        update_data["current_set"] = update.current_set
-    if update.winner_id is not None:
+    if update.resource_id:
+        update_data["resource_id"] = update.resource_id
+    if update.scheduled_time:
+        update_data["scheduled_time"] = update.scheduled_time
+    
+    if update.winner_id:
         update_data["winner_id"] = update.winner_id
         update_data["status"] = "completed"
         
-        # Update next match with winner
+        # Update next match
         if match.get("next_match_id"):
             next_match = await db.matches.find_one({"id": match["next_match_id"]}, {"_id": 0})
             if next_match:
@@ -1062,9 +1499,9 @@ async def update_match(match_id: str, update: MatchUpdate, current_user: dict = 
                     await db.matches.update_one({"id": match["next_match_id"]}, {"$set": {"participant2_id": update.winner_id}})
         
         # Update player/team stats
-        tournament = await db.tournaments.find_one({"id": match["tournament_id"]}, {"_id": 0})
-        match_type = tournament.get("match_type", "singles") if tournament else "singles"
-        collection = "players" if match_type == "singles" else "teams"
+        competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
+        participant_type = competition.get("participant_type", "single") if competition else "single"
+        collection = "players" if participant_type == "single" else "teams"
         
         loser_id = match["participant1_id"] if update.winner_id == match["participant2_id"] else match["participant2_id"]
         
@@ -1072,103 +1509,304 @@ async def update_match(match_id: str, update: MatchUpdate, current_user: dict = 
             await db[collection].update_one({"id": update.winner_id}, {"$inc": {"wins": 1, "matches_played": 1}})
         if loser_id:
             await db[collection].update_one({"id": loser_id}, {"$inc": {"losses": 1, "matches_played": 1}})
+        
+        # Clear resource
+        if match.get("resource_id"):
+            await db.resources.update_one({"id": match["resource_id"]}, {"$set": {"current_match_id": None}})
     
     if update_data:
         await db.matches.update_one({"id": match_id}, {"$set": update_data})
     
-    updated_match = await db.matches.find_one({"id": match_id}, {"_id": 0})
-    return MatchResponse(**updated_match)
+    return {"message": "Match updated"}
 
-@api_router.post("/matches/{match_id}/score")
-async def update_score(match_id: str, set_score: SetScore, current_user: dict = Depends(get_current_user)):
+@api_router.post("/tournaments/{tournament_id}/matches/{match_id}/assign")
+async def assign_match_to_resource(tournament_id: str, match_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
+    require_scorekeeper_or_admin(current_user)
+    
+    # Check if scorekeeper can assign
+    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+    if current_user["role"] == "scorekeeper" and not tournament.get("settings", {}).get("scorekeeper_can_assign", True):
+        raise HTTPException(status_code=403, detail="Scorekeepers cannot assign matches in this tournament")
+    
+    resource = await db.resources.find_one({"id": resource_id}, {"_id": 0})
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.get("locked"):
+        raise HTTPException(status_code=400, detail="Resource is locked")
+    if resource.get("current_match_id"):
+        raise HTTPException(status_code=400, detail="Resource already has a match")
+    
+    await db.matches.update_one({"id": match_id}, {"$set": {"resource_id": resource_id, "status": "scheduled"}})
+    await db.resources.update_one({"id": resource_id}, {"$set": {"current_match_id": match_id}})
+    
+    return {"message": "Match assigned to resource"}
+
+@api_router.post("/tournaments/{tournament_id}/matches/{match_id}/start")
+async def start_match(tournament_id: str, match_id: str, current_user: dict = Depends(require_auth)):
+    require_scorekeeper_or_admin(current_user)
+    
+    match = await db.matches.find_one({"id": match_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if not match.get("resource_id"):
+        raise HTTPException(status_code=400, detail="Match must be assigned to a resource first")
+    if match.get("status") not in ["pending", "scheduled"]:
+        raise HTTPException(status_code=400, detail="Match cannot be started")
+    
+    await db.matches.update_one({"id": match_id}, {"$set": {"status": "live"}})
+    await db.competitions.update_one({"id": match["competition_id"]}, {"$set": {"status": "in_progress"}})
+    
+    return {"message": "Match started"}
+
+@api_router.post("/tournaments/{tournament_id}/matches/{match_id}/complete")
+async def complete_match(tournament_id: str, match_id: str, scores: List[SetScore], current_user: dict = Depends(require_auth)):
+    require_scorekeeper_or_admin(current_user)
+    
+    match = await db.matches.find_one({"id": match_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if match.get("status") != "live":
+        raise HTTPException(status_code=400, detail="Match must be live to complete")
+    
+    # Calculate winner from scores
+    p1_sets = sum(1 for s in scores if s.score1 > s.score2)
+    p2_sets = sum(1 for s in scores if s.score2 > s.score1)
+    
+    winner_id = match["participant1_id"] if p1_sets > p2_sets else match["participant2_id"]
+    
+    # Use the update_match function logic
+    update = MatchUpdate(scores=scores, winner_id=winner_id)
+    return await update_match(tournament_id, match_id, update, current_user)
+
+@api_router.post("/tournaments/{tournament_id}/matches/{match_id}/reassign")
+async def reassign_match(tournament_id: str, match_id: str, new_resource_id: str, current_user: dict = Depends(require_auth)):
+    require_scorekeeper_or_admin(current_user)
+    
     match = await db.matches.find_one({"id": match_id}, {"_id": 0})
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     
-    scores = match.get("scores", [])
+    # Clear old resource
+    if match.get("resource_id"):
+        await db.resources.update_one({"id": match["resource_id"]}, {"$set": {"current_match_id": None}})
     
-    # Update or add set score
-    existing_set = next((s for s in scores if s["set_number"] == set_score.set_number), None)
-    if existing_set:
-        existing_set["participant1_score"] = set_score.participant1_score
-        existing_set["participant2_score"] = set_score.participant2_score
-    else:
-        scores.append(set_score.model_dump())
+    # Assign to new resource
+    await db.matches.update_one({"id": match_id}, {"$set": {"resource_id": new_resource_id}})
+    await db.resources.update_one({"id": new_resource_id}, {"$set": {"current_match_id": match_id}})
     
-    await db.matches.update_one(
-        {"id": match_id},
-        {"$set": {"scores": scores, "status": "in_progress", "current_set": set_score.set_number}}
-    )
-    
-    return {"message": "Score updated", "scores": scores}
+    return {"message": "Match reassigned"}
 
-# ============== LEADERBOARD / STATS ==============
+# ============== STANDINGS ==============
 
-@api_router.get("/leaderboard/{sport}")
-async def get_leaderboard(sport: str, current_user: dict = Depends(get_current_user)):
-    players = await db.players.find(
-        {"sport": sport},
-        {"_id": 0}
-    ).sort([("wins", -1), ("matches_played", -1)]).to_list(50)
+@api_router.get("/tournaments/{tournament_id}/competitions/{competition_id}/standings")
+async def get_standings(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
     
-    # Calculate win rate and rank
-    leaderboard = []
-    for idx, player in enumerate(players):
-        win_rate = (player["wins"] / player["matches_played"] * 100) if player["matches_played"] > 0 else 0
-        name = f"{player.get('first_name', '')} {player.get('last_name', '')}".strip() or player.get("name", "Unknown")
-        leaderboard.append({
-            "rank": idx + 1,
-            "id": player["id"],
-            "name": name,
-            "first_name": player.get("first_name"),
-            "last_name": player.get("last_name"),
-            "gender": player.get("gender"),
-            "age": player.get("age"),
-            "team": player.get("team"),
-            "wins": player["wins"],
-            "losses": player["losses"],
-            "matches_played": player["matches_played"],
-            "win_rate": round(win_rate, 1),
-            "skill_level": player.get("skill_level", "intermediate")
-        })
+    standings = await calculate_standings(competition_id, competition.get("num_groups", 1))
     
-    return leaderboard
+    # Add participant names
+    participant_type = competition.get("participant_type", "single")
+    collection = "players" if participant_type == "single" else "teams"
+    
+    for entry in standings:
+        participant = await db[collection].find_one({"id": entry["participant_id"]}, {"_id": 0})
+        if participant:
+            entry["participant_name"] = participant.get("name") or f"{participant.get('first_name', '')} {participant.get('last_name', '')}".strip()
+    
+    # Sort by wins, then point difference
+    standings.sort(key=lambda x: (-x.get("wins", 0), -(x.get("points_for", 0) - x.get("points_against", 0))))
+    
+    # Add ranks
+    for i, entry in enumerate(standings):
+        entry["rank"] = i + 1
+    
+    return standings
 
-@api_router.get("/stats/dashboard")
-async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
-    total_players = await db.players.count_documents({})
-    total_teams = await db.teams.count_documents({})
-    total_tournaments = await db.tournaments.count_documents({})
-    active_tournaments = await db.tournaments.count_documents({"status": "in_progress"})
-    total_matches = await db.matches.count_documents({})
-    completed_matches = await db.matches.count_documents({"status": "completed"})
+# ============== CONTROL DESK ==============
+
+@api_router.get("/tournaments/{tournament_id}/control-desk")
+async def get_control_desk(tournament_id: str, current_user: dict = Depends(require_auth)):
+    require_scorekeeper_or_admin(current_user)
     
-    tt_players = await db.players.count_documents({"sport": "table_tennis"})
-    bd_players = await db.players.count_documents({"sport": "badminton"})
+    # Get all resources
+    resources = await db.resources.find({"tournament_id": tournament_id, "enabled": True}, {"_id": 0}).to_list(100)
     
-    recent_tournaments = await db.tournaments.find({}, {"_id": 0}).sort("created_at", -1).to_list(5)
+    # Enrich with current match info
+    for resource in resources:
+        if resource.get("current_match_id"):
+            match = await db.matches.find_one({"id": resource["current_match_id"]}, {"_id": 0})
+            if match:
+                # Get participant names
+                competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
+                participant_type = competition.get("participant_type", "single") if competition else "single"
+                collection = "players" if participant_type == "single" else "teams"
+                
+                if match.get("participant1_id"):
+                    p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0})
+                    match["participant1"] = {"id": p1["id"], "name": p1.get("name") or f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip()} if p1 else None
+                if match.get("participant2_id"):
+                    p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0})
+                    match["participant2"] = {"id": p2["id"], "name": p2.get("name") or f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip()} if p2 else None
+                
+                resource["current_match"] = match
+    
+    # Get pending matches that can be assigned
+    pending_matches = await db.matches.find({
+        "tournament_id": tournament_id,
+        "status": "pending",
+        "resource_id": None,
+        "participant1_id": {"$ne": None},
+        "participant2_id": {"$ne": None}
+    }, {"_id": 0}).to_list(50)
+    
+    # Get live matches
+    live_matches = await db.matches.find({
+        "tournament_id": tournament_id,
+        "status": "live"
+    }, {"_id": 0}).to_list(50)
+    
+    # Get recent completed matches
+    recent_completed = await db.matches.find({
+        "tournament_id": tournament_id,
+        "status": "completed"
+    }, {"_id": 0}).sort("created_at", -1).to_list(10)
+    
+    return {
+        "resources": resources,
+        "pending_matches": pending_matches,
+        "live_matches": live_matches,
+        "recent_completed": recent_completed
+    }
+
+@api_router.post("/tournaments/{tournament_id}/control-desk/assign-next")
+async def assign_next_match(tournament_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
+    require_scorekeeper_or_admin(current_user)
+    
+    resource = await db.resources.find_one({"id": resource_id}, {"_id": 0})
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.get("locked"):
+        raise HTTPException(status_code=400, detail="Resource is locked")
+    if resource.get("current_match_id"):
+        raise HTTPException(status_code=400, detail="Resource already has a match")
+    
+    # Find next pending match for this sport
+    next_match = await db.matches.find_one({
+        "tournament_id": tournament_id,
+        "status": "pending",
+        "resource_id": None,
+        "participant1_id": {"$ne": None},
+        "participant2_id": {"$ne": None}
+    }, {"_id": 0})
+    
+    if not next_match:
+        raise HTTPException(status_code=404, detail="No pending matches available")
+    
+    await db.matches.update_one({"id": next_match["id"]}, {"$set": {"resource_id": resource_id, "status": "scheduled"}})
+    await db.resources.update_one({"id": resource_id}, {"$set": {"current_match_id": next_match["id"]}})
+    
+    return {"message": "Next match assigned", "match_id": next_match["id"]}
+
+# ============== PUBLIC BOARD (No auth required) ==============
+
+@api_router.get("/public/tournaments")
+async def public_list_tournaments():
+    tournaments = await db.tournaments.find({}, {"_id": 0, "id": 1, "name": 1, "venue": 1, "start_date": 1, "status": 1}).to_list(100)
+    return tournaments
+
+@api_router.get("/public/tournaments/{tournament_id}/board")
+async def public_board(tournament_id: str):
+    tournament = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0, "id": 1, "name": 1, "venue": 1})
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    
+    # Get resources with current matches
+    resources = await db.resources.find({"tournament_id": tournament_id, "enabled": True}, {"_id": 0}).to_list(100)
+    
+    for resource in resources:
+        if resource.get("current_match_id"):
+            match = await db.matches.find_one({"id": resource["current_match_id"]}, {"_id": 0})
+            if match:
+                competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
+                participant_type = competition.get("participant_type", "single") if competition else "single"
+                collection = "players" if participant_type == "single" else "teams"
+                
+                if match.get("participant1_id"):
+                    p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0})
+                    match["participant1_name"] = (p1.get("name") or f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip()) if p1 else "TBD"
+                if match.get("participant2_id"):
+                    p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0})
+                    match["participant2_name"] = (p2.get("name") or f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip()) if p2 else "TBD"
+                
+                resource["current_match"] = match
+    
+    # Get recent results
+    recent_results = await db.matches.find({
+        "tournament_id": tournament_id,
+        "status": "completed"
+    }, {"_id": 0}).sort("created_at", -1).to_list(10)
+    
+    for match in recent_results:
+        competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
+        participant_type = competition.get("participant_type", "single") if competition else "single"
+        collection = "players" if participant_type == "single" else "teams"
+        
+        if match.get("participant1_id"):
+            p1 = await db[collection].find_one({"id": match["participant1_id"]}, {"_id": 0})
+            match["participant1_name"] = (p1.get("name") or f"{p1.get('first_name', '')} {p1.get('last_name', '')}".strip()) if p1 else "TBD"
+        if match.get("participant2_id"):
+            p2 = await db[collection].find_one({"id": match["participant2_id"]}, {"_id": 0})
+            match["participant2_name"] = (p2.get("name") or f"{p2.get('first_name', '')} {p2.get('last_name', '')}".strip()) if p2 else "TBD"
+    
+    return {
+        "tournament": tournament,
+        "resources": resources,
+        "recent_results": recent_results
+    }
+
+# ============== DASHBOARD STATS ==============
+
+@api_router.get("/tournaments/{tournament_id}/stats")
+async def get_tournament_stats(tournament_id: str, current_user: dict = Depends(require_auth)):
+    total_players = await db.players.count_documents({"tournament_id": tournament_id})
+    total_teams = await db.teams.count_documents({"tournament_id": tournament_id})
+    total_resources = await db.resources.count_documents({"tournament_id": tournament_id})
+    total_divisions = await db.divisions.count_documents({"tournament_id": tournament_id})
+    total_competitions = await db.competitions.count_documents({"tournament_id": tournament_id})
+    total_matches = await db.matches.count_documents({"tournament_id": tournament_id})
+    completed_matches = await db.matches.count_documents({"tournament_id": tournament_id, "status": "completed"})
+    live_matches = await db.matches.count_documents({"tournament_id": tournament_id, "status": "live"})
+    
+    # Players by sport
+    pipeline = [
+        {"$match": {"tournament_id": tournament_id}},
+        {"$unwind": "$sports"},
+        {"$group": {"_id": "$sports", "count": {"$sum": 1}}}
+    ]
+    sport_breakdown = await db.players.aggregate(pipeline).to_list(10)
+    sport_breakdown_dict = {s["_id"]: s["count"] for s in sport_breakdown}
     
     return {
         "total_players": total_players,
         "total_teams": total_teams,
-        "total_tournaments": total_tournaments,
-        "active_tournaments": active_tournaments,
+        "total_resources": total_resources,
+        "total_divisions": total_divisions,
+        "total_competitions": total_competitions,
         "total_matches": total_matches,
         "completed_matches": completed_matches,
-        "sport_breakdown": {
-            "table_tennis": tt_players,
-            "badminton": bd_players
-        },
-        "recent_tournaments": recent_tournaments
+        "live_matches": live_matches,
+        "sport_breakdown": sport_breakdown_dict
     }
 
 # ============== ROOT ==============
 
 @api_router.get("/")
 async def root():
-    return {"message": "RallyDesk - Sports Tournament Management API"}
+    return {"message": "RallyDesk - Multi-Sport Tournament Platform API", "version": "2.0"}
 
-# Include the router
+# Include router
 app.include_router(api_router)
 
 app.add_middleware(
