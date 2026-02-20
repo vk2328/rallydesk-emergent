@@ -38,8 +38,12 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (username, password) => {
-    const response = await axios.post(`${API_URL}/auth/login`, { username, password });
+  const login = async (username, password, turnstileToken = null) => {
+    const payload = { username, password };
+    if (turnstileToken) {
+      payload.turnstile_token = turnstileToken;
+    }
+    const response = await axios.post(`${API_URL}/auth/login`, payload);
     const { access_token, user: userData } = response.data;
     localStorage.setItem('rallydesk_token', access_token);
     setToken(access_token);
@@ -47,15 +51,19 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const register = async (username, email, password, first_name, last_name, phone_number) => {
-    const response = await axios.post(`${API_URL}/auth/register`, { 
+  const register = async (username, email, password, first_name, last_name, phone_number, turnstileToken = null) => {
+    const payload = { 
       username, 
       email, 
       password, 
       first_name, 
       last_name, 
       phone_number: phone_number || null 
-    });
+    };
+    if (turnstileToken) {
+      payload.turnstile_token = turnstileToken;
+    }
+    const response = await axios.post(`${API_URL}/auth/register`, payload);
     const { access_token, user: userData } = response.data;
     localStorage.setItem('rallydesk_token', access_token);
     setToken(access_token);
