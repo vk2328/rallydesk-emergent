@@ -212,6 +212,62 @@ const CompetitionDetail = () => {
     }
   };
 
+  const handleDownloadScoreSheet = async () => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/score-sheet-pdf`,
+        { 
+          headers: getAuthHeader(),
+          responseType: 'blob'
+        }
+      );
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `score_sheet_${competition.name.replace(/\s+/g, '_')}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Score sheet downloaded');
+    } catch (error) {
+      toast.error('Failed to download score sheet');
+    }
+  };
+
+  const handleGenerateRefereeAccess = async (matchId) => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/tournaments/${tournamentId}/matches/${matchId}/referee-access`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      
+      toast.success('Referee access generated!');
+      return response.data;
+    } catch (error) {
+      toast.error('Failed to generate referee access');
+      return null;
+    }
+  };
+
+  const handleConfirmScore = async (matchId) => {
+    try {
+      await axios.post(
+        `${API_URL}/tournaments/${tournamentId}/matches/${matchId}/confirm-score`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      toast.success('Score confirmed!');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to confirm score');
+    }
+  };
+
   const toggleParticipant = (id) => {
     setSelectedParticipants(prev => 
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
