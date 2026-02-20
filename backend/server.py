@@ -275,11 +275,15 @@ async def create_player(player: PlayerCreate, current_user: dict = Depends(get_c
     now = datetime.now(timezone.utc).isoformat()
     player_doc = {
         "id": player_id,
-        "name": player.name,
+        "first_name": player.first_name,
+        "last_name": player.last_name,
         "email": player.email,
         "phone": player.phone,
-        "sport": player.sport,
+        "gender": player.gender,
+        "age": player.age,
         "skill_level": player.skill_level,
+        "sport": player.sport,
+        "team": player.team,
         "wins": 0,
         "losses": 0,
         "matches_played": 0,
