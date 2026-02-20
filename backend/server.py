@@ -455,14 +455,15 @@ async def create_team(team: TeamCreate, current_user: dict = Depends(get_current
     await db.teams.insert_one(team_doc)
     
     # Fetch player details
-    players = await db.players.find({"id": {"$in": team.player_ids}}, {"_id": 0, "name": 1, "id": 1}).to_list(10)
+    players = await db.players.find({"id": {"$in": team.player_ids}}, {"_id": 0, "first_name": 1, "last_name": 1, "id": 1}).to_list(10)
+    players_formatted = [{"id": p["id"], "name": f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()} for p in players]
     
     return TeamResponse(
         id=team_id,
         name=team.name,
         sport=team.sport,
         player_ids=team.player_ids,
-        players=players,
+        players=players_formatted,
         wins=0,
         losses=0,
         created_at=now
