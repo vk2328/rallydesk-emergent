@@ -44,16 +44,39 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('rallydesk_token', access_token);
     setToken(access_token);
     setUser(userData);
-    return userData;
+    return response.data;
   };
 
-  const register = async (username, email, password, display_name) => {
-    const response = await axios.post(`${API_URL}/auth/register`, { username, email, password, display_name });
+  const register = async (username, email, password, first_name, last_name, phone_number) => {
+    const response = await axios.post(`${API_URL}/auth/register`, { 
+      username, 
+      email, 
+      password, 
+      first_name, 
+      last_name, 
+      phone_number: phone_number || null 
+    });
     const { access_token, user: userData } = response.data;
     localStorage.setItem('rallydesk_token', access_token);
     setToken(access_token);
     setUser(userData);
     return userData;
+  };
+
+  const verifyEmail = async (code) => {
+    const response = await axios.post(`${API_URL}/auth/verify-email`, { code }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    // Update user state to reflect email verified
+    setUser(prev => ({ ...prev, email_verified: true }));
+    return response.data;
+  };
+
+  const resendVerification = async () => {
+    const response = await axios.post(`${API_URL}/auth/resend-verification`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   };
 
   const logout = () => {
