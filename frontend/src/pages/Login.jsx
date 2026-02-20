@@ -30,6 +30,10 @@ const Login = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [resending, setResending] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
+  const [loginTurnstileToken, setLoginTurnstileToken] = useState('');
+  const [registerTurnstileToken, setRegisterTurnstileToken] = useState('');
+  const loginTurnstileRef = useRef(null);
+  const registerTurnstileRef = useRef(null);
   const { login, register, verifyEmail, resendVerification, loginWithFacebook } = useAuth();
   const navigate = useNavigate();
 
