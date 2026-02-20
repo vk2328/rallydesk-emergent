@@ -560,7 +560,7 @@ async def update_profile(display_name: Optional[str] = None, current_user: dict 
 
 @api_router.put("/admin/users/{user_id}/role")
 async def update_user_role(user_id: str, role: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     if role not in ROLES:
         raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {ROLES}")
     await db.users.update_one({"id": user_id}, {"$set": {"role": role}})
@@ -950,7 +950,7 @@ async def upload_players_csv(
     division_id: Optional[str] = None,
     current_user: dict = Depends(require_auth)
 ):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
@@ -1097,7 +1097,7 @@ async def upload_players_csv(
 
 @api_router.post("/tournaments/{tournament_id}/resources", response_model=ResourceResponse)
 async def create_resource(tournament_id: str, resource: ResourceCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     if resource.sport not in SPORTS:
         raise HTTPException(status_code=400, detail=f"Invalid sport. Must be one of: {SPORTS}")
@@ -1122,7 +1122,7 @@ async def create_resource(tournament_id: str, resource: ResourceCreate, current_
 
 @api_router.post("/tournaments/{tournament_id}/resources/bulk-add")
 async def bulk_add_resources(tournament_id: str, sport: str, count: int, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     if sport not in SPORTS:
         raise HTTPException(status_code=400, detail="Invalid sport")
@@ -1165,26 +1165,26 @@ async def list_resources(tournament_id: str, sport: Optional[str] = None, curren
 
 @api_router.put("/tournaments/{tournament_id}/resources/{resource_id}")
 async def update_resource(tournament_id: str, resource_id: str, resource: ResourceCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     update_data = resource.model_dump(exclude_unset=True)
     await db.resources.update_one({"id": resource_id, "tournament_id": tournament_id}, {"$set": update_data})
     return {"message": "Resource updated"}
 
 @api_router.delete("/tournaments/{tournament_id}/resources/{resource_id}")
 async def delete_resource(tournament_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.resources.delete_one({"id": resource_id, "tournament_id": tournament_id})
     return {"message": "Resource deleted"}
 
 @api_router.post("/tournaments/{tournament_id}/resources/{resource_id}/lock")
 async def lock_resource(tournament_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.resources.update_one({"id": resource_id}, {"$set": {"locked": True}})
     return {"message": "Resource locked"}
 
 @api_router.post("/tournaments/{tournament_id}/resources/{resource_id}/unlock")
 async def unlock_resource(tournament_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.resources.update_one({"id": resource_id}, {"$set": {"locked": False}})
     return {"message": "Resource unlocked"}
 
@@ -1192,7 +1192,7 @@ async def unlock_resource(tournament_id: str, resource_id: str, current_user: di
 
 @api_router.post("/tournaments/{tournament_id}/divisions", response_model=DivisionResponse)
 async def create_division(tournament_id: str, division: DivisionCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     division_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -1222,14 +1222,14 @@ async def get_division(tournament_id: str, division_id: str, current_user: dict 
 
 @api_router.put("/tournaments/{tournament_id}/divisions/{division_id}")
 async def update_division(tournament_id: str, division_id: str, division: DivisionCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     update_data = division.model_dump(exclude_unset=True)
     await db.divisions.update_one({"id": division_id}, {"$set": update_data})
     return {"message": "Division updated"}
 
 @api_router.delete("/tournaments/{tournament_id}/divisions/{division_id}")
 async def delete_division(tournament_id: str, division_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.divisions.delete_one({"id": division_id})
     return {"message": "Division deleted"}
 
@@ -1237,7 +1237,7 @@ async def delete_division(tournament_id: str, division_id: str, current_user: di
 
 @api_router.post("/tournaments/{tournament_id}/teams", response_model=TeamResponse)
 async def create_team(tournament_id: str, team: TeamCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     team_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -1276,7 +1276,7 @@ async def list_teams(tournament_id: str, sport: Optional[str] = None, current_us
 
 @api_router.delete("/tournaments/{tournament_id}/teams/{team_id}")
 async def delete_team(tournament_id: str, team_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.teams.delete_one({"id": team_id})
     return {"message": "Team deleted"}
 
@@ -1288,7 +1288,7 @@ async def auto_pair_players(
     strategy: str = "random",  # random, balanced, avoid_same_club
     current_user: dict = Depends(require_auth)
 ):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     # Get available players for the sport
     players = await db.players.find({"tournament_id": tournament_id, "sports": sport}, {"_id": 0}).to_list(1000)
@@ -1352,7 +1352,7 @@ async def swap_team_players(
     player2_id: str,
     current_user: dict = Depends(require_auth)
 ):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     team1 = await db.teams.find_one({"id": team1_id}, {"_id": 0})
     team2 = await db.teams.find_one({"id": team2_id}, {"_id": 0})
@@ -1373,7 +1373,7 @@ async def swap_team_players(
 
 @api_router.post("/tournaments/{tournament_id}/competitions", response_model=CompetitionResponse)
 async def create_competition(tournament_id: str, competition: CompetitionCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     if competition.sport not in SPORTS:
         raise HTTPException(status_code=400, detail="Invalid sport")
@@ -1420,7 +1420,7 @@ async def get_competition(tournament_id: str, competition_id: str, current_user:
 
 @api_router.put("/tournaments/{tournament_id}/competitions/{competition_id}")
 async def update_competition(tournament_id: str, competition_id: str, competition: CompetitionCreate, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     update_data = competition.model_dump(exclude_unset=True)
     if competition.scoring_rules:
         update_data["scoring_rules"] = competition.scoring_rules.model_dump()
@@ -1429,7 +1429,7 @@ async def update_competition(tournament_id: str, competition_id: str, competitio
 
 @api_router.delete("/tournaments/{tournament_id}/competitions/{competition_id}")
 async def delete_competition(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.matches.delete_many({"competition_id": competition_id})
     await db.competitions.delete_one({"id": competition_id})
     return {"message": "Competition deleted"}
@@ -1437,7 +1437,7 @@ async def delete_competition(tournament_id: str, competition_id: str, current_us
 # Participant management
 @api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/participants")
 async def add_participant(tournament_id: str, competition_id: str, participant_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
     if not competition:
@@ -1451,7 +1451,7 @@ async def add_participant(tournament_id: str, competition_id: str, participant_i
 
 @api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/participants/bulk")
 async def bulk_add_participants(tournament_id: str, competition_id: str, participant_ids: List[str], current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
     if not competition:
@@ -1467,7 +1467,7 @@ async def bulk_add_participants(tournament_id: str, competition_id: str, partici
 
 @api_router.delete("/tournaments/{tournament_id}/competitions/{competition_id}/participants/{participant_id}")
 async def remove_participant(tournament_id: str, competition_id: str, participant_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.competitions.update_one({"id": competition_id}, {"$pull": {"participant_ids": participant_id}})
     return {"message": "Participant removed"}
 
@@ -1492,7 +1492,7 @@ async def get_participants(tournament_id: str, competition_id: str, current_user
 # Draw generation
 @api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/generate-draw")
 async def generate_draw(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
     if not competition:
@@ -1555,7 +1555,7 @@ async def generate_draw_advanced(
     current_user: dict = Depends(require_auth)
 ):
     """Generate draw with seeding options: random, rating-based, or manual order"""
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
     if not competition:
@@ -1619,7 +1619,7 @@ async def swap_participants(
     current_user: dict = Depends(require_auth)
 ):
     """Swap participants between two matches for manual bracket adjustment"""
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     match1 = await db.matches.find_one({"id": request.match1_id, "competition_id": competition_id}, {"_id": 0})
     match2 = await db.matches.find_one({"id": request.match2_id, "competition_id": competition_id}, {"_id": 0})
@@ -1678,7 +1678,7 @@ async def move_participant(
     current_user: dict = Depends(require_auth)
 ):
     """Move a participant from one match slot to another"""
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     source_match = await db.matches.find_one({"id": request.source_match_id, "competition_id": competition_id}, {"_id": 0})
     target_match = await db.matches.find_one({"id": request.target_match_id, "competition_id": competition_id}, {"_id": 0})
@@ -1714,7 +1714,7 @@ async def advance_winner(
     current_user: dict = Depends(require_auth)
 ):
     """Manually advance a winner to the next round match"""
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     match = await db.matches.find_one({"id": request.match_id, "competition_id": competition_id}, {"_id": 0})
     if not match:
@@ -1835,14 +1835,14 @@ async def get_bracket(
 
 @api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/reset-draw")
 async def reset_draw(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     await db.matches.delete_many({"competition_id": competition_id})
     await db.competitions.update_one({"id": competition_id}, {"$set": {"status": "draft"}})
     return {"message": "Draw reset"}
 
 @api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/generate-knockout")
 async def generate_knockout(tournament_id: str, competition_id: str, current_user: dict = Depends(require_auth)):
-    require_admin(current_user)
+    await require_tournament_access(tournament_id, current_user)
     
     competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
     if not competition:
