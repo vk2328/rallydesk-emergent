@@ -204,10 +204,15 @@ REACT_APP_FACEBOOK_APP_ID=your-facebook-app-id
 - [ ] Frontend loads correctly
 - [ ] User registration works
 - [ ] User login works
+- [ ] Email verification works (if Mailjet configured)
 - [ ] Google OAuth works (if configured)
+- [ ] Facebook OAuth works (if configured)
 - [ ] Tournament creation works
 - [ ] Player CSV import works
 - [ ] Draw generation works
+- [ ] Referee scoring page works
+- [ ] PDF score sheet download works
+- [ ] Moderator management works
 - [ ] Live match center accessible without login
 
 ---
