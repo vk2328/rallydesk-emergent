@@ -556,7 +556,9 @@ const TournamentDetail = () => {
             <CardContent>
               {competitions.length > 0 ? (
                 <div className="space-y-3">
-                  {competitions.map((competition) => (
+                  {competitions.map((competition) => {
+                    const divisionName = divisions.find(d => d.id === competition.division_id)?.name;
+                    return (
                     <div
                       key={competition.id}
                       className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
@@ -567,7 +569,14 @@ const TournamentDetail = () => {
                           <span className="text-lg">{getSportIcon(competition.sport)}</span>
                         </div>
                         <div>
-                          <h4 className="font-semibold">{competition.name}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{competition.name}</h4>
+                            {divisionName && (
+                              <Badge variant="outline" className="text-xs">
+                                {divisionName}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             {formatSport(competition.sport)} • {formatFormat(competition.format)} • {competition.participant_ids?.length || 0} participants
                           </p>
@@ -598,7 +607,8 @@ const TournamentDetail = () => {
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
