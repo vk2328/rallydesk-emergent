@@ -787,15 +787,26 @@ const TournamentDetail = () => {
                           Manage <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
                         {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteCompetition(competition.id)}
-                            className="text-destructive hover:text-destructive"
-                            data-testid={`delete-competition-${competition.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditCompetition(competition)}
+                              className="text-muted-foreground hover:text-primary"
+                              data-testid={`edit-competition-${competition.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteCompetition(competition.id)}
+                              className="text-destructive hover:text-destructive"
+                              data-testid={`delete-competition-${competition.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
