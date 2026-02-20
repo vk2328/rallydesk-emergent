@@ -47,7 +47,8 @@ const TournamentDetail = () => {
   // Filter states
   const [playerDivisionFilter, setPlayerDivisionFilter] = useState('all');
 
-  const isAdmin = user?.role === 'admin';
+  // In SaaS mode, if user can see tournament, they have access to manage it
+  const isAdmin = true;  // User has access if they can fetch the tournament
 
   useEffect(() => {
     fetchTournamentData();
