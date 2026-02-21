@@ -98,16 +98,10 @@ const Leaderboard = () => {
           <div className="flex items-center gap-4 mb-2">
             <span className="text-5xl">{sportEmoji}</span>
             <div>
-              <h1 
-                className="font-heading text-4xl md:text-5xl font-bold tracking-tight uppercase"
-                style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
-              >
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight uppercase text-white drop-shadow-lg">
                 {sportName}
               </h1>
-              <p 
-                className="text-xl"
-                style={{ color: '#e4e4e7', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-              >
+              <p className="text-xl text-zinc-200 drop-shadow-md">
                 Leaderboard
               </p>
             </div>
