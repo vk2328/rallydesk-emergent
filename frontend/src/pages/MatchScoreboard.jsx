@@ -24,7 +24,8 @@ const MatchScoreboard = () => {
   const [score2, setScore2] = useState(0);
   const [sets, setSets] = useState([]);
 
-  const canScore = user?.role === 'admin' || user?.role === 'scorekeeper';
+  // Allow scoring for admin, scorekeeper, or any authenticated user (tournament owner is checked on backend)
+  const canScore = user && (user.role === 'admin' || user.role === 'scorekeeper' || user.role === 'viewer');
 
   useEffect(() => {
     fetchMatch();
