@@ -199,3 +199,10 @@ Application is stable. SaaS multi-tenant model implemented Feb 2025.
 Configurable scoring rules, digital referee scoring, and PDF generation added Feb 2025.
 Email verification with Mailjet integration complete Feb 2025.
 Facebook OAuth integration complete Feb 2025.
+
+## Mobile Responsiveness Fix (Dec 2025) - COMPLETE
+- **Landing page mobile layout**: Fixed hero section and navigation for mobile screens
+- **Navigation bar**: Added responsive mobile buttons for "Live" and "Get Started"
+- **Hero section**: Made CTA buttons full-width on mobile, adjusted typography sizes
+- **Sports icons**: Added flex-wrap and reduced spacing for smaller screens
+- File updated: `/app/frontend/src/pages/LandingPage.jsx`
