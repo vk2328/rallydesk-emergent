@@ -3564,8 +3564,8 @@ async def get_public_board(tournament_id: str):
 # ============== LEADERBOARD ROUTES ==============
 
 @api_router.get("/leaderboard/{sport}")
-async def get_leaderboard(sport: str, current_user: dict = Depends(get_current_user)):
-    """Get player leaderboard for a specific sport across all tournaments"""
+async def get_leaderboard(sport: str):
+    """Get player leaderboard for a specific sport across all tournaments (public)"""
     if sport not in SPORTS:
         raise HTTPException(status_code=400, detail=f"Invalid sport. Must be one of: {SPORTS}")
     
