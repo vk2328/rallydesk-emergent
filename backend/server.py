@@ -3597,7 +3597,7 @@ async def get_leaderboard(sport: str):
         })
     
     # Sort by wins (primary), then win_rate (secondary), then rating (tertiary)
-    leaderboard.sort(key=lambda x: (-x["wins"], -x["win_rate"], -x.get("rating", 0)))
+    leaderboard.sort(key=lambda x: (-x["wins"], -x["win_rate"], -(x.get("rating") or 0)))
     
     # Assign ranks
     for i, entry in enumerate(leaderboard):
