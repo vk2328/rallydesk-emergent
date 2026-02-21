@@ -468,8 +468,8 @@ async def require_tournament_access(tournament_id: str, user: dict, require_owne
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate, request: Request):
-    # Verify Turnstile token if configured
-    if is_turnstile_enabled() and user_data.turnstile_token:
+    # Verify Turnstile token only if both backend secret is configured AND frontend sent a token
+    if user_data.turnstile_token and is_turnstile_enabled():
         client_ip = request.client.host if request.client else None
         if not await verify_turnstile_token(user_data.turnstile_token, client_ip):
             raise HTTPException(status_code=400, detail="Security verification failed. Please try again.")
