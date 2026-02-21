@@ -64,23 +64,58 @@ const LandingPage = () => {
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-white" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          {/* Desktop Navigation */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <span className="font-bold text-xl sm:text-2xl tracking-tight">RALLYDESK</span>
             </div>
-            <span className="font-bold text-2xl tracking-tight">RALLYDESK</span>
+            
+            {/* Desktop buttons */}
+            <div className="hidden sm:flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </Button>
+              <Button variant="ghost" onClick={() => navigate('/live')} data-testid="live-matches-btn">
+                Live Matches
+              </Button>
+              <Button onClick={() => navigate('/login')} data-testid="get-started-btn">
+                Get Started
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+            
+            {/* Mobile theme toggle */}
+            <div className="sm:hidden">
+              <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          
+          {/* Mobile Navigation Buttons */}
+          <div className="flex sm:hidden items-center justify-center gap-3 mt-3 pb-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 max-w-[140px]"
+              onClick={() => navigate('/live')}
+              data-testid="mobile-live-matches-btn"
+            >
+              <Play className="w-4 h-4 mr-1" />
+              Live
             </Button>
-            <Button variant="ghost" onClick={() => navigate('/live')}>
-              Live Matches
-            </Button>
-            <Button onClick={() => navigate('/login')} data-testid="get-started-btn">
+            <Button 
+              size="sm" 
+              className="flex-1 max-w-[140px]"
+              onClick={() => navigate('/login')} 
+              data-testid="mobile-get-started-btn"
+            >
               Get Started
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
