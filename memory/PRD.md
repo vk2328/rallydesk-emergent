@@ -206,3 +206,8 @@ Facebook OAuth integration complete Feb 2025.
 - **Hero section**: Made CTA buttons full-width on mobile, adjusted typography sizes
 - **Sports icons**: Added flex-wrap and reduced spacing for smaller screens
 - File updated: `/app/frontend/src/pages/LandingPage.jsx`
+
+## Leaderboard & Standings Fixes (Dec 2025) - COMPLETE
+- **Leaderboard heading contrast**: Fixed white text visibility on dark background with drop-shadow
+- **Standings data display**: Fixed field name mismatches between backend (`participant_name`, `wins`, `sets_for`) and frontend (`name`, `won`, `sets_won`)
+- Files updated: `/app/frontend/src/pages/Leaderboard.jsx`, `/app/frontend/src/pages/Standings.jsx`
