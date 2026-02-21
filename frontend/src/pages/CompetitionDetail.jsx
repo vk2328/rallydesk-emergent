@@ -464,7 +464,7 @@ const CompetitionDetail = () => {
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={handleResetDraw}
+                    onClick={() => setIsResetDialogOpen(true)}
                     data-testid="reset-draw-btn"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
