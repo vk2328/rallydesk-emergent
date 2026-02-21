@@ -200,17 +200,21 @@ const CompetitionDetail = () => {
   };
 
   const handleResetDraw = async () => {
-    if (!window.confirm('Are you sure? This will delete all matches.')) return;
+    setResetting(true);
     try {
       await axios.post(
         `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/reset-draw`,
         {},
         { headers: getAuthHeader() }
       );
-      toast.success('Draw reset');
+      toast.success('Draw reset successfully');
+      setIsResetDialogOpen(false);
       fetchData();
     } catch (error) {
+      console.error('Reset draw error:', error);
       toast.error('Failed to reset draw');
+    } finally {
+      setResetting(false);
     }
   };
 
