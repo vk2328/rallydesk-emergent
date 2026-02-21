@@ -25,7 +25,8 @@ const ControlDesk = () => {
   const [loading, setLoading] = useState(true);
   const [selectedSport, setSelectedSport] = useState('all');
 
-  const canAssign = user?.role === 'admin' || user?.role === 'scorekeeper';
+  // Allow assignment for any authenticated user (tournament access is checked on backend)
+  const canAssign = !!user;
 
   const fetchData = useCallback(async () => {
     try {
