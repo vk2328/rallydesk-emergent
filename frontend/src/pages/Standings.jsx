@@ -241,13 +241,13 @@ const Standings = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className="font-medium">{standing.name}</span>
+                        <span className="font-medium">{standing.participant_name || standing.name || 'Unknown'}</span>
                       </td>
-                      <td className="p-4 text-center">{standing.played}</td>
-                      <td className="p-4 text-center text-green-500 font-medium">{standing.won}</td>
-                      <td className="p-4 text-center text-red-500">{standing.lost}</td>
+                      <td className="p-4 text-center">{standing.played || 0}</td>
+                      <td className="p-4 text-center text-green-500 font-medium">{standing.wins || standing.won || 0}</td>
+                      <td className="p-4 text-center text-red-500">{standing.losses || standing.lost || 0}</td>
                       <td className="p-4 text-center">
-                        <span className="text-green-500">{standing.sets_won}</span>
+                        <span className="text-green-500">{standing.sets_for || standing.sets_won || 0}</span>
                         <span className="text-muted-foreground">/</span>
                         <span className="text-red-500">{standing.sets_lost}</span>
                       </td>
