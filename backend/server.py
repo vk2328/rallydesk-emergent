@@ -2663,6 +2663,22 @@ async def update_match(tournament_id: str, match_id: str, update: MatchUpdate, c
         # Clear resource
         if match.get("resource_id"):
             await db.resources.update_one({"id": match["resource_id"]}, {"$set": {"current_match_id": None}})
+        
+        # Check if all matches in competition are completed
+        pending_matches = await db.matches.count_documents({
+            "competition_id": match["competition_id"], 
+            "status": {"$ne": "completed"}
+        })
+        if pending_matches == 0:
+            await db.competitions.update_one({"id": match["competition_id"]}, {"$set": {"status": "completed"}})
+            
+            # Check if all competitions in tournament are completed
+            pending_competitions = await db.competitions.count_documents({
+                "tournament_id": tournament_id,
+                "status": {"$ne": "completed"}
+            })
+            if pending_competitions == 0:
+                await db.tournaments.update_one({"id": tournament_id}, {"$set": {"status": "completed"}})
     
     if update_data:
         await db.matches.update_one({"id": match_id}, {"$set": update_data})
