@@ -253,70 +253,73 @@ const MatchScoreboard = () => {
           <Card className="bg-card border-border/40 mb-6">
             <CardHeader>
               <CardTitle className="font-heading uppercase text-center">
-                Set {currentSet} - Current Score
+                {match.status === 'live' ? `Set ${currentSet} - Current Score` : 'Ready to Start'}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="grid grid-cols-3 gap-4 items-center">
-                {/* Player 1 Score */}
-                <div className="text-center">
-                  <p className="font-teko text-7xl md:text-9xl font-bold">{score1}</p>
-                  {canScore && match.status === 'live' && (
-                    <div className="flex justify-center gap-2 mt-4">
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        onClick={() => handleScoreChange(1, -1)}
-                        disabled={score1 === 0}
-                        data-testid="p1-minus"
-                      >
-                        <Minus className="w-6 h-6" />
-                      </Button>
-                      <Button
-                        size="lg"
-                        onClick={() => handleScoreChange(1, 1)}
-                        className="bg-primary"
-                        data-testid="p1-plus"
-                      >
-                        <Plus className="w-6 h-6" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+              {/* Show score controls only when match is live */}
+              {match.status === 'live' && (
+                <div className="grid grid-cols-3 gap-4 items-center">
+                  {/* Player 1 Score */}
+                  <div className="text-center">
+                    <p className="font-teko text-7xl md:text-9xl font-bold">{score1}</p>
+                    {canScore && (
+                      <div className="flex justify-center gap-2 mt-4">
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          onClick={() => handleScoreChange(1, -1)}
+                          disabled={score1 === 0}
+                          data-testid="p1-minus"
+                        >
+                          <Minus className="w-6 h-6" />
+                        </Button>
+                        <Button
+                          size="lg"
+                          onClick={() => handleScoreChange(1, 1)}
+                          className="bg-primary"
+                          data-testid="p1-plus"
+                        >
+                          <Plus className="w-6 h-6" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Separator */}
-                <div className="text-center">
-                  <span className="font-teko text-4xl text-muted-foreground">:</span>
-                </div>
+                  {/* Separator */}
+                  <div className="text-center">
+                    <span className="font-teko text-4xl text-muted-foreground">:</span>
+                  </div>
 
-                {/* Player 2 Score */}
-                <div className="text-center">
-                  <p className="font-teko text-7xl md:text-9xl font-bold">{score2}</p>
-                  {canScore && match.status === 'live' && (
-                    <div className="flex justify-center gap-2 mt-4">
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        onClick={() => handleScoreChange(2, -1)}
-                        disabled={score2 === 0}
-                        data-testid="p2-minus"
-                      >
-                        <Minus className="w-6 h-6" />
-                      </Button>
-                      <Button
-                        size="lg"
-                        onClick={() => handleScoreChange(2, 1)}
-                        className="bg-secondary"
-                        data-testid="p2-plus"
-                      >
-                        <Plus className="w-6 h-6" />
-                      </Button>
-                    </div>
-                  )}
+                  {/* Player 2 Score */}
+                  <div className="text-center">
+                    <p className="font-teko text-7xl md:text-9xl font-bold">{score2}</p>
+                    {canScore && (
+                      <div className="flex justify-center gap-2 mt-4">
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          onClick={() => handleScoreChange(2, -1)}
+                          disabled={score2 === 0}
+                          data-testid="p2-minus"
+                        >
+                          <Minus className="w-6 h-6" />
+                        </Button>
+                        <Button
+                          size="lg"
+                          onClick={() => handleScoreChange(2, 1)}
+                          className="bg-secondary"
+                          data-testid="p2-plus"
+                        >
+                          <Plus className="w-6 h-6" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Set Actions */}
+              {/* Set Actions - only when live */}
               {canScore && match.status === 'live' && (
                 <div className="flex justify-center gap-4 mt-8">
                   <Button
@@ -339,13 +342,16 @@ const MatchScoreboard = () => {
                 </div>
               )}
 
-              {/* Start Match Button */}
+              {/* Start Match Button - show for pending or scheduled */}
               {canScore && (match.status === 'pending' || match.status === 'scheduled') && (
-                <div className="flex justify-center mt-8">
+                <div className="flex flex-col items-center justify-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    {match.status === 'scheduled' ? 'Match is ready. Start when players are at the table.' : 'Click to begin the match'}
+                  </p>
                   <Button
                     size="lg"
                     onClick={handleStartMatch}
-                    className="font-bold uppercase tracking-wider bg-green-600 hover:bg-green-700"
+                    className="font-bold uppercase tracking-wider bg-green-600 hover:bg-green-700 px-8 py-6 text-lg"
                     data-testid="start-match"
                   >
                     Start Match
