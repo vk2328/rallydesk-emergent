@@ -1759,6 +1759,12 @@ async def generate_draw(tournament_id: str, competition_id: str, current_user: d
     
     await db.competitions.update_one({"id": competition_id}, {"$set": {"status": "draw_generated"}})
     
+    # Update tournament status to "draw_generated" if still in draft
+    await db.tournaments.update_one(
+        {"id": tournament_id, "status": "draft"}, 
+        {"$set": {"status": "draw_generated"}}
+    )
+    
     return {"message": f"Generated {len(matches)} matches", "match_count": len(matches)}
 
 # Pydantic models for draw adjustments
