@@ -122,45 +122,45 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
+      <section className="pt-28 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-6">
-              <Zap className="w-4 h-4" />
-              Multi-Sport Tournament Operations Platform
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-primary text-xs sm:text-sm font-medium mb-4 sm:mb-6">
+              <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
+              Multi-Sport Tournament Platform
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-4 sm:mb-6 leading-tight">
               Run Tournaments
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500">
                 Like a Pro
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-base sm:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
               From player registration to live scoring - RallyDesk handles every aspect of your tournament. 
               Built for organizers who demand efficiency and spectators who crave real-time updates.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/login')}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <Button size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6" onClick={() => navigate('/login')} data-testid="hero-start-btn">
                 Start Your Tournament
-                <ChevronRight className="w-5 h-5 ml-2" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6" onClick={() => navigate('/live')}>
-                <Play className="w-5 h-5 mr-2" />
+              <Button size="lg" variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6" onClick={() => navigate('/live')} data-testid="hero-live-btn">
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 View Live Matches
               </Button>
             </div>
           </div>
 
           {/* Sports Icons */}
-          <div className="flex items-center justify-center gap-8 mt-16">
+          <div className="flex items-center justify-center gap-4 sm:gap-8 mt-10 sm:mt-16 flex-wrap">
             {sports.map((sport, idx) => (
               <div 
                 key={sport.name}
-                className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+                className="flex flex-col items-center gap-1 sm:gap-2 opacity-60 hover:opacity-100 transition-opacity"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
-                <span className="text-4xl">{sport.icon}</span>
-                <span className="text-xs text-muted-foreground">{sport.name}</span>
+                <span className="text-2xl sm:text-4xl">{sport.icon}</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">{sport.name}</span>
               </div>
             ))}
           </div>
