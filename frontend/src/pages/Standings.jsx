@@ -249,13 +249,13 @@ const Standings = () => {
                       <td className="p-4 text-center">
                         <span className="text-green-500">{standing.sets_for || standing.sets_won || 0}</span>
                         <span className="text-muted-foreground">/</span>
-                        <span className="text-red-500">{standing.sets_lost}</span>
+                        <span className="text-red-500">{standing.sets_against || standing.sets_lost || 0}</span>
                       </td>
                       <td className="p-4 text-center text-sm text-muted-foreground">
-                        {standing.points_won}-{standing.points_lost}
+                        {standing.points_for || standing.points_won || 0}-{standing.points_against || standing.points_lost || 0}
                       </td>
                       <td className="p-4 text-center">
-                        <span className="font-teko text-2xl font-bold text-primary">{standing.points}</span>
+                        <span className="font-teko text-2xl font-bold text-primary">{(standing.wins || standing.won || 0) * 2}</span>
                       </td>
                     </tr>
                   ))}
