@@ -41,6 +41,8 @@ const CompetitionDetail = () => {
   const [isEditBracketMode, setIsEditBracketMode] = useState(false);
   const [selectedMatchForSwap, setSelectedMatchForSwap] = useState(null);
   const [bracketData, setBracketData] = useState(null);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const isAdmin = user?.role === 'admin';
 
