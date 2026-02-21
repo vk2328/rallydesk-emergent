@@ -339,12 +339,12 @@ const MatchScoreboard = () => {
               )}
 
               {/* Start Match Button */}
-              {canScore && match.status === 'pending' && (
+              {canScore && (match.status === 'pending' || match.status === 'scheduled') && (
                 <div className="flex justify-center mt-8">
                   <Button
                     size="lg"
                     onClick={handleStartMatch}
-                    className="font-bold uppercase tracking-wider"
+                    className="font-bold uppercase tracking-wider bg-green-600 hover:bg-green-700"
                     data-testid="start-match"
                   >
                     Start Match
