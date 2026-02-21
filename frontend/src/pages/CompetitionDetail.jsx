@@ -865,6 +865,48 @@ const CompetitionDetail = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Reset Draw Confirmation Dialog */}
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <AlertCircle className="w-5 h-5" />
+              Reset Draw
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reset the draw? This will <strong>delete all matches</strong> including completed ones and their scores. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsResetDialogOpen(false)}
+              disabled={resetting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleResetDraw}
+              disabled={resetting}
+              data-testid="confirm-reset-btn"
+            >
+              {resetting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Yes, Reset Draw
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
