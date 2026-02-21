@@ -2652,13 +2652,26 @@ async def update_match(tournament_id: str, match_id: str, update: MatchUpdate, c
         competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
         participant_type = competition.get("participant_type", "single") if competition else "single"
         collection = "players" if participant_type == "single" else "teams"
+        sport = competition.get("sport", "table_tennis") if competition else "table_tennis"
         
         loser_id = match["participant1_id"] if update.winner_id == match["participant2_id"] else match["participant2_id"]
         
         if update.winner_id:
-            await db[collection].update_one({"id": update.winner_id}, {"$inc": {"wins": 1, "matches_played": 1}})
+            await db[collection].update_one(
+                {"id": update.winner_id}, 
+                {
+                    "$inc": {"wins": 1, "matches_played": 1},
+                    "$addToSet": {"sports": sport}
+                }
+            )
         if loser_id:
-            await db[collection].update_one({"id": loser_id}, {"$inc": {"losses": 1, "matches_played": 1}})
+            await db[collection].update_one(
+                {"id": loser_id}, 
+                {
+                    "$inc": {"losses": 1, "matches_played": 1},
+                    "$addToSet": {"sports": sport}
+                }
+            )
         
         # Clear resource
         if match.get("resource_id"):
