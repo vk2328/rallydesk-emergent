@@ -89,7 +89,7 @@ const Leaderboard = () => {
       <div 
         className="relative rounded-xl overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6)), url('https://images.pexels.com/photos/6250947/pexels-photo-6250947.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940')`,
+          backgroundImage: `linear-gradient(to right, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7)), url('https://images.pexels.com/photos/6250947/pexels-photo-6250947.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
@@ -98,10 +98,18 @@ const Leaderboard = () => {
           <div className="flex items-center gap-4 mb-2">
             <span className="text-5xl">{sportEmoji}</span>
             <div>
-              <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight uppercase" style={{ color: '#ffffff' }}>
+              <h1 
+                className="font-heading text-4xl md:text-5xl font-bold tracking-tight uppercase"
+                style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+              >
                 {sportName}
               </h1>
-              <p className="text-xl" style={{ color: '#d4d4d8' }}>Leaderboard</p>
+              <p 
+                className="text-xl"
+                style={{ color: '#e4e4e7', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+              >
+                Leaderboard
+              </p>
             </div>
           </div>
         </div>
