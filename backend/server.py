@@ -2706,6 +2706,12 @@ async def start_match(tournament_id: str, match_id: str, current_user: dict = De
     await db.matches.update_one({"id": match_id}, {"$set": {"status": "live"}})
     await db.competitions.update_one({"id": match["competition_id"]}, {"$set": {"status": "in_progress"}})
     
+    # Update tournament status to "in_progress" 
+    await db.tournaments.update_one(
+        {"id": tournament_id, "status": {"$in": ["draft", "draw_generated"]}}, 
+        {"$set": {"status": "in_progress"}}
+    )
+    
     return {"message": "Match started"}
 
 @api_router.post("/tournaments/{tournament_id}/matches/{match_id}/complete")
