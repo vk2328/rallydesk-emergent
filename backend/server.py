@@ -591,8 +591,8 @@ async def resend_verification(current_user: dict = Depends(require_auth)):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin, request: Request):
-    # Verify Turnstile token if configured
-    if is_turnstile_enabled() and credentials.turnstile_token:
+    # Verify Turnstile token only if both backend secret is configured AND frontend sent a token
+    if credentials.turnstile_token and is_turnstile_enabled():
         client_ip = request.client.host if request.client else None
         if not await verify_turnstile_token(credentials.turnstile_token, client_ip):
             raise HTTPException(status_code=400, detail="Security verification failed. Please try again.")
