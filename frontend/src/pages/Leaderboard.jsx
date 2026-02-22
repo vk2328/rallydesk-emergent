@@ -1,31 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
 import { API_URL, formatSport, getSportColor } from '../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
-import { Trophy, Medal, TrendingUp, Percent } from 'lucide-react';
+import { Trophy, Medal, TrendingUp, ArrowLeft, Home } from 'lucide-react';
 
 const Leaderboard = () => {
   const { sport } = useParams();
-  const { getAuthHeader } = useAuth();
+  const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchLeaderboard();
   }, [sport]);
 
   const fetchLeaderboard = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await axios.get(`${API_URL}/leaderboard/${sport}`, {
-        headers: getAuthHeader()
-      });
-      setLeaderboard(response.data);
+      // Public endpoint - no auth needed
+      const response = await axios.get(`${API_URL}/leaderboard/${sport}`);
+      console.log('Leaderboard data:', response.data);
+      setLeaderboard(response.data || []);
     } catch (error) {
+      console.error('Leaderboard fetch error:', error);
+      setError(error.message);
       toast.error('Failed to fetch leaderboard');
     } finally {
       setLoading(false);
