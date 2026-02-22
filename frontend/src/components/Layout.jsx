@@ -13,7 +13,7 @@ import {
 } from '../components/ui/dropdown-menu';
 import { 
   Trophy, Users, Target, Grid3X3, Award, 
-  LayoutDashboard, Menu, LogOut, User, ChevronDown, Sun, Moon
+  LayoutDashboard, Menu, LogOut, User, ChevronDown, Sun, Moon, HelpCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
