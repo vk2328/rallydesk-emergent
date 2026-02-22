@@ -295,8 +295,8 @@ def auth_token(api_client):
             })
             if register_response.status_code == 200:
                 return register_response.json().get("access_token")
-        except:
-            pass
+        except Exception as e:
+            print(f"Registration fallback failed: {e}")
         return None
 
 

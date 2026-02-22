@@ -92,7 +92,6 @@ function AppRoutes() {
       <Route path="/group-scorer/:tournamentId/:competitionId/:groupNumber" element={<GroupScorer />} />
       <Route path="/leaderboard/:sport" element={<Leaderboard />} />
       <Route path="/help" element={<HelpGuide />} />
-      <Route path="/" element={<Navigate to="/live" replace />} />
       <Route path="*" element={<Navigate to="/live" replace />} />
     </Routes>
   );

@@ -165,7 +165,7 @@ yarn start
 - `POST /api/referee/{tournamentId}/{matchId}/update-score` - Submit referee score
 
 ### Public (No Auth)
-- `GET /api/stats/live-match-center` - Live matches data
+- `GET /api/live-match-center` - Live matches data
 - `GET /api/health` - Health check
 
 ## Environment Variables

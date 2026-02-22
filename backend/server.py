@@ -37,7 +37,10 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # JWT Configuration
-SECRET_KEY = os.environ.get('JWT_SECRET', 'rallydesk-secret-key-2026')
+_SECRET_RAW = os.environ.get('JWT_SECRET', 'rallydesk-secret-key-2026')
+if os.environ.get('ENV') == 'production' and (_SECRET_RAW is None or _SECRET_RAW == 'rallydesk-secret-key-2026'):
+    raise RuntimeError("JWT_SECRET must be set to a secure value in production")
+SECRET_KEY = _SECRET_RAW or 'rallydesk-secret-key-2026'
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
@@ -414,7 +417,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             return None
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
         return user
-    except:
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
         return None
 
 async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
