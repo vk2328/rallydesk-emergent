@@ -177,6 +177,29 @@ const MatchScoreboard = () => {
     setScore2(0);
   };
 
+  const handleGenerateQR = async () => {
+    setGeneratingQr(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/tournaments/${tournamentId}/matches/${matchId}/referee-access`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      setQrData(response.data);
+      setQrDialogOpen(true);
+    } catch (error) {
+      console.error('QR generation error:', error);
+      toast.error('Failed to generate referee access code');
+    } finally {
+      setGeneratingQr(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard!');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
