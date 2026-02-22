@@ -142,6 +142,44 @@ const HelpGuide = () => {
       ]
     },
     {
+      id: 'groups-knockout',
+      title: 'Groups + Knockout Format',
+      icon: Trophy,
+      color: 'text-amber-500',
+      steps: [
+        {
+          title: 'When to Use Groups + Knockout',
+          description: 'Ideal for larger tournaments (8+ players) where you want every player to have multiple guaranteed matches before knockout rounds.',
+          tip: 'This format combines round-robin group play with elimination brackets.'
+        },
+        {
+          title: 'Create Groups + Knockout Competition',
+          description: 'When creating a competition, select "Groups + Knockout" as the format. Set the number of groups and how many players advance from each group.',
+          tip: 'Example: 8 players, 2 groups, top 2 advance = 4 players in knockout.'
+        },
+        {
+          title: 'Understanding the Group Stage',
+          description: 'Players are distributed into groups using snake draft (balanced seeding). Each player plays everyone in their group once (round-robin).',
+          tip: 'Standings show Played (P), Wins (W), Losses (L), and Point Difference (+/-).'
+        },
+        {
+          title: 'Complete Group Matches',
+          description: 'Run all group stage matches. The standings table updates automatically as matches are completed.',
+          tip: 'Top players in each group (shown with green highlighting) will advance to knockout.'
+        },
+        {
+          title: 'Generate Knockout Bracket',
+          description: 'Once ALL group matches are complete, click "Generate Knockout" to create the elimination bracket with qualified players.',
+          tip: 'The button only appears when the group stage is 100% complete.'
+        },
+        {
+          title: 'Finish with Knockout',
+          description: 'The knockout bracket appears below the groups. Run these matches to determine the champion.',
+          tip: 'Knockout matches show as Semi-Final, Final, etc. based on remaining players.'
+        }
+      ]
+    },
+    {
       id: 'manage-resources',
       title: 'Managing Resources (Courts/Tables)',
       icon: Settings,
