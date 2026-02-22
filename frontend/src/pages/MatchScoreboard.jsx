@@ -373,8 +373,8 @@ const MatchScoreboard = () => {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6" data-testid="match-scoreboard">
-      {/* Score Status Banner - Shows when referee entered scores */}
-      {(match.score_status === 'pending' || hasNewUpdates) && canScore && (
+      {/* Score Status Banner - Shows when referee entered scores that need confirmation */}
+      {match.score_status === 'pending' && match.scores?.length > 0 && canScore && (
         <div className="max-w-4xl mx-auto mb-4">
           <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-4 flex items-center justify-between animate-pulse" data-testid="score-update-banner">
             <div className="flex items-center gap-3">
@@ -403,6 +403,24 @@ const MatchScoreboard = () => {
                 <CheckCircle2 className="w-4 h-4 mr-2" />
               )}
               Confirm Score
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Live Update Notification - Shows when polling detects new scores */}
+      {hasNewUpdates && match.score_status !== 'pending' && canScore && (
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="bg-blue-500/20 border border-blue-500/40 rounded-lg p-4 flex items-center gap-3" data-testid="new-update-banner">
+            <Wifi className="w-6 h-6 text-blue-500 animate-pulse" />
+            <div className="flex-1">
+              <p className="font-medium text-blue-100">Scores Updated</p>
+              <p className="text-sm text-blue-200/70">
+                {lastUpdateTime && `Last update: ${lastUpdateTime.toLocaleTimeString()}`}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setHasNewUpdates(false)}>
+              Dismiss
             </Button>
           </div>
         </div>
