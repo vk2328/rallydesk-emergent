@@ -51,7 +51,61 @@ const MatchScoreboard = () => {
 
   useEffect(() => {
     fetchMatch();
+    
+    // Set up polling for live score updates (every 5 seconds when match is live)
+    pollIntervalRef.current = setInterval(() => {
+      if (match?.status === 'live' || match?.status === 'pending') {
+        fetchMatchSilent();
+      }
+    }, 5000);
+    
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
   }, [tournamentId, matchId]);
+
+  // Silent fetch for polling (doesn't show loading state)
+  const fetchMatchSilent = async () => {
+    try {
+      const matchRes = await axios.get(`${API_URL}/tournaments/${tournamentId}/matches/${matchId}`, {
+        headers: getAuthHeader()
+      });
+      
+      const newMatch = matchRes.data;
+      
+      // Check if scores changed (referee updated remotely)
+      if (previousScoresRef.current) {
+        const prevScores = JSON.stringify(previousScoresRef.current);
+        const newScores = JSON.stringify(newMatch.scores || []);
+        
+        if (prevScores !== newScores) {
+          setHasNewUpdates(true);
+          setLastUpdateTime(new Date());
+          toast.success('Scores updated by referee!', {
+            icon: <Wifi className="w-4 h-4 text-green-500" />
+          });
+        }
+      }
+      
+      previousScoresRef.current = newMatch.scores || [];
+      setMatch(newMatch);
+      
+      // Update local scores from fetched data
+      if (newMatch.scores?.length > 0) {
+        setSets(newMatch.scores);
+        const lastSet = newMatch.scores[newMatch.scores.length - 1];
+        if (lastSet) {
+          setCurrentSet(newMatch.scores.length);
+          setScore1(lastSet.score1 || 0);
+          setScore2(lastSet.score2 || 0);
+        }
+      }
+    } catch (error) {
+      console.error('Silent fetch error:', error);
+    }
+  };
 
   const fetchMatch = async () => {
     try {
