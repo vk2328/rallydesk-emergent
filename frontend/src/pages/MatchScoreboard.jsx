@@ -221,10 +221,25 @@ const MatchScoreboard = () => {
     <div className="min-h-screen bg-background p-4 md:p-6" data-testid="match-scoreboard">
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          
+          {/* QR Code Button */}
+          {canScore && match.status !== 'completed' && (
+            <Button 
+              variant="outline" 
+              onClick={handleGenerateQR}
+              disabled={generatingQr}
+              data-testid="generate-qr-btn"
+            >
+              <QrCode className="w-4 h-4 mr-2" />
+              {generatingQr ? 'Generating...' : 'Referee QR Code'}
+            </Button>
+          )}
+        </div>
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
