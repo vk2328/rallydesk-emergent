@@ -373,6 +373,51 @@ const MatchScoreboard = () => {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6" data-testid="match-scoreboard">
+      {/* Score Status Banner - Shows when referee entered scores */}
+      {(match.score_status === 'pending' || hasNewUpdates) && canScore && (
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-4 flex items-center justify-between animate-pulse" data-testid="score-update-banner">
+            <div className="flex items-center gap-3">
+              <Clock className="w-6 h-6 text-yellow-500" />
+              <div>
+                <p className="font-medium text-yellow-100">Referee Score Update</p>
+                <p className="text-sm text-yellow-200/70">
+                  Scores have been updated by the referee. Please review and confirm.
+                  {lastUpdateTime && (
+                    <span className="ml-2">
+                      (Updated: {lastUpdateTime.toLocaleTimeString()})
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleConfirmScore}
+              disabled={confirmingScore}
+              className="bg-green-600 hover:bg-green-700"
+              data-testid="confirm-score-btn"
+            >
+              {confirmingScore ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
+              Confirm Score
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Confirmed Score Badge */}
+      {match.score_status === 'confirmed' && (
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="bg-green-500/20 border border-green-500/40 rounded-lg p-3 flex items-center justify-center gap-2" data-testid="score-confirmed-banner">
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <span className="text-green-100 font-medium">Score Confirmed</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -381,18 +426,28 @@ const MatchScoreboard = () => {
             Back
           </Button>
           
-          {/* QR Code Button */}
-          {canScore && match.status !== 'completed' && (
-            <Button 
-              variant="outline" 
-              onClick={handleGenerateQR}
-              disabled={generatingQr}
-              data-testid="generate-qr-btn"
-            >
-              <QrCode className="w-4 h-4 mr-2" />
-              {generatingQr ? 'Generating...' : 'Referee QR Code'}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Live update indicator */}
+            {(match.status === 'live' || match.status === 'pending') && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground" title="Auto-refreshing every 5 seconds">
+                <Wifi className="w-3 h-3 text-green-500" />
+                <span>Live</span>
+              </div>
+            )}
+            
+            {/* QR Code Button */}
+            {canScore && match.status !== 'completed' && (
+              <Button 
+                variant="outline" 
+                onClick={handleGenerateQR}
+                disabled={generatingQr}
+                data-testid="generate-qr-btn"
+              >
+                <QrCode className="w-4 h-4 mr-2" />
+                {generatingQr ? 'Generating...' : 'Referee QR Code'}
+              </Button>
+            )}
+          </div>
         </div>
         
         <div className="flex items-center justify-between">
