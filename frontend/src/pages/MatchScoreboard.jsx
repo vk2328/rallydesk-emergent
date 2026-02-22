@@ -454,6 +454,72 @@ const MatchScoreboard = () => {
           </Card>
         )}
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5" />
+              Referee Access Code
+            </DialogTitle>
+          </DialogHeader>
+          
+          {qrData && (
+            <div className="space-y-4">
+              {/* QR Code Image */}
+              {qrData.qr_code && (
+                <div className="flex justify-center p-4 bg-white rounded-lg">
+                  <img 
+                    src={qrData.qr_code} 
+                    alt="QR Code for referee access" 
+                    className="w-48 h-48"
+                  />
+                </div>
+              )}
+              
+              {/* OTP Code */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">Or use this code:</p>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-mono text-3xl font-bold tracking-widest bg-muted px-4 py-2 rounded">
+                    {qrData.code}
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => copyToClipboard(qrData.code)}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Scoring URL */}
+              {qrData.scoring_url && (
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Scoring URL:</p>
+                  <div className="flex items-center gap-2 p-2 bg-muted rounded text-xs break-all">
+                    <span className="flex-1">{qrData.scoring_url}</span>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      className="flex-shrink-0"
+                      onClick={() => copyToClipboard(qrData.scoring_url)}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground text-center">
+                Share this QR code or OTP with the referee to allow them to enter scores.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
