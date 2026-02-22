@@ -113,6 +113,7 @@ const MatchScoreboard = () => {
         headers: getAuthHeader()
       });
       setMatch(matchRes.data);
+      previousScoresRef.current = matchRes.data.scores || [];
       
       // Fetch competition for scoring rules
       const compRes = await axios.get(`${API_URL}/tournaments/${tournamentId}/competitions/${matchRes.data.competition_id}`, {
@@ -135,6 +136,25 @@ const MatchScoreboard = () => {
       navigate(-1);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Confirm score entered by referee
+  const handleConfirmScore = async () => {
+    setConfirmingScore(true);
+    try {
+      await axios.post(
+        `${API_URL}/tournaments/${tournamentId}/matches/${matchId}/confirm-score`,
+        { action: 'confirm' },
+        { headers: getAuthHeader() }
+      );
+      toast.success('Score confirmed!');
+      setHasNewUpdates(false);
+      fetchMatch();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to confirm score');
+    } finally {
+      setConfirmingScore(false);
     }
   };
 
