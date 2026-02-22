@@ -211,3 +211,28 @@ Facebook OAuth integration complete Feb 2025.
 - **Leaderboard heading contrast**: Fixed white text visibility on dark background with drop-shadow
 - **Standings data display**: Fixed field name mismatches between backend (`participant_name`, `wins`, `sets_for`) and frontend (`name`, `won`, `sets_won`)
 - Files updated: `/app/frontend/src/pages/Leaderboard.jsx`, `/app/frontend/src/pages/Standings.jsx`
+
+## Groups + Knockout Format (Feb 2025) - COMPLETE
+**Feature**: Full support for group stage + knockout elimination format
+- **Group Stage UI**: New `GroupStageView.jsx` component with:
+  - Group tables showing standings (P, W, L, +/- columns)
+  - Visual indication of qualifying positions (green highlight)
+  - Match list within each group with clickable navigation
+  - Progress bar showing group stage completion
+- **Snake Draft Seeding**: Players distributed fairly across groups
+- **Automatic Standings**: Updates as matches are completed
+- **Generate Knockout Button**: Appears only when ALL group matches complete
+- **Backend Validation**: `generate-knockout` endpoint now validates:
+  - Group stage must be 100% complete
+  - Knockout bracket must not already exist
+  - Minimum 2 qualifiers required
+- **Help Guide Documentation**: Added comprehensive "Groups + Knockout Format" section
+- Files updated:
+  - `/app/frontend/src/pages/CompetitionDetail.jsx` - Conditional rendering for groups format
+  - `/app/frontend/src/components/RallyDesk/GroupStageView.jsx` - New component
+  - `/app/frontend/src/pages/HelpGuide.jsx` - Added documentation
+  - `/app/backend/server.py` - Enhanced generate-knockout endpoint
+- API endpoints:
+  - `POST /api/tournaments/{id}/competitions/{compId}/generate-draw-advanced` - Creates group stage matches
+  - `POST /api/tournaments/{id}/competitions/{compId}/generate-knockout` - Creates knockout bracket from qualifiers
+- Test reports: `/app/test_reports/iteration_4.json` (100% pass rate)
