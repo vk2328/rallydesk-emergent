@@ -24,6 +24,7 @@ import AuthCallback from "./pages/AuthCallback";
 import LiveMatchCenter from "./pages/LiveMatchCenter";
 import RefereeScoring from "./pages/RefereeScoring";
 import HelpGuide from "./pages/HelpGuide";
+import GroupScorer from "./pages/GroupScorer";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
