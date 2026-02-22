@@ -23,6 +23,7 @@ import Leaderboard from "./pages/Leaderboard";
 import AuthCallback from "./pages/AuthCallback";
 import LiveMatchCenter from "./pages/LiveMatchCenter";
 import RefereeScoring from "./pages/RefereeScoring";
+import HelpGuide from "./pages/HelpGuide";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
