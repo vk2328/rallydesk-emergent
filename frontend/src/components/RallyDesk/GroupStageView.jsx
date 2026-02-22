@@ -160,6 +160,29 @@ const GroupStageView = ({
     }
   };
 
+  const handleGenerateGroupQR = async (groupNum) => {
+    setGeneratingQr(true);
+    setSelectedGroupForQr(groupNum);
+    try {
+      const response = await axios.post(
+        `${API_URL}/tournaments/${tournamentId}/competitions/${competitionId}/group/${groupNum}/scorer-access`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      setQrData(response.data);
+      setQrDialogOpen(true);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to generate QR code');
+    } finally {
+      setGeneratingQr(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard!');
+  };
+
   const getParticipantName = (participantId) => {
     if (!participantId) return 'TBD';
     const participant = participants.find(p => p.id === participantId);
