@@ -6,26 +6,47 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
-import { Trophy, Medal, TrendingUp, ArrowLeft, Home } from 'lucide-react';
+import { Trophy, Medal, TrendingUp, ArrowLeft, Home, Globe, Filter } from 'lucide-react';
 
 const Leaderboard = () => {
   const { sport } = useParams();
   const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
+  const [selectedTournament, setSelectedTournament] = useState('global');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    fetchTournaments();
+  }, []);
+
+  useEffect(() => {
     fetchLeaderboard();
-  }, [sport]);
+  }, [sport, selectedTournament]);
+
+  const fetchTournaments = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/tournaments-list`);
+      setTournaments(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch tournaments:', error);
+    }
+  };
 
   const fetchLeaderboard = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Public endpoint - no auth needed
-      const response = await axios.get(`${API_URL}/leaderboard/${sport}`);
+      // Build URL with optional tournament filter
+      let url = `${API_URL}/leaderboard/${sport}`;
+      if (selectedTournament && selectedTournament !== 'global') {
+        url += `?tournament_id=${selectedTournament}`;
+      }
+      
+      const response = await axios.get(url);
       console.log('Leaderboard data:', response.data);
       setLeaderboard(response.data || []);
     } catch (error) {
@@ -76,15 +97,6 @@ const Leaderboard = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-96" />
-      </div>
-    );
-  }
-
   const sportNames = {
     'table_tennis': 'Table Tennis',
     'badminton': 'Badminton',
@@ -103,6 +115,10 @@ const Leaderboard = () => {
 
   const sportName = sportNames[sport] || sport;
   const sportEmoji = sportEmojis[sport] || '🏆';
+
+  const selectedTournamentName = selectedTournament === 'global' 
+    ? 'All Tournaments' 
+    : tournaments.find(t => t.id === selectedTournament)?.name || 'Tournament';
 
   return (
     <div className="p-6 space-y-6" data-testid="leaderboard-page">
@@ -142,16 +158,70 @@ const Leaderboard = () => {
         </div>
       </div>
 
+      {/* Tournament Filter */}
+      <Card className="bg-card border-border/40">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Filter by Tournament:</span>
+            </div>
+            <Select value={selectedTournament} onValueChange={setSelectedTournament}>
+              <SelectTrigger className="w-full sm:w-[300px]" data-testid="tournament-filter">
+                <SelectValue placeholder="Select tournament">
+                  <div className="flex items-center gap-2">
+                    {selectedTournament === 'global' && <Globe className="w-4 h-4" />}
+                    {selectedTournamentName}
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="global">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    All Tournaments (Global)
+                  </div>
+                </SelectItem>
+                {tournaments.map((tournament) => (
+                  <SelectItem key={tournament.id} value={tournament.id}>
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-primary" />
+                      {tournament.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedTournament !== 'global' && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Showing rankings for: <span className="font-medium text-foreground">{selectedTournamentName}</span>
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Leaderboard */}
       <Card className="bg-card border-border/40">
         <CardHeader>
           <CardTitle className="font-heading uppercase flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
             Player Rankings
+            {selectedTournament !== 'global' && (
+              <Badge variant="outline" className="ml-2 text-xs">
+                {selectedTournamentName}
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {error ? (
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : error ? (
             <div className="text-center py-12 text-red-500">
               <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>Error loading leaderboard</p>
@@ -216,7 +286,22 @@ const Leaderboard = () => {
             <div className="text-center py-12 text-muted-foreground">
               <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No players with match history yet</p>
-              <p className="text-sm mt-1">Complete some {sportName} matches to see rankings</p>
+              <p className="text-sm mt-1">
+                {selectedTournament === 'global' 
+                  ? `Complete some ${sportName} matches to see rankings`
+                  : `No ${sportName} matches completed in this tournament yet`
+                }
+              </p>
+              {selectedTournament !== 'global' && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedTournament('global')} 
+                  className="mt-4"
+                >
+                  <Globe className="w-4 h-4 mr-2" />
+                  View Global Rankings
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
