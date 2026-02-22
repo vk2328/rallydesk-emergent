@@ -85,11 +85,39 @@ const Leaderboard = () => {
     );
   }
 
-  const sportName = sport === 'table_tennis' ? 'Table Tennis' : 'Badminton';
-  const sportEmoji = sport === 'table_tennis' ? '🏓' : '🏸';
+  const sportNames = {
+    'table_tennis': 'Table Tennis',
+    'badminton': 'Badminton',
+    'volleyball': 'Volleyball',
+    'tennis': 'Tennis',
+    'pickleball': 'Pickleball'
+  };
+  
+  const sportEmojis = {
+    'table_tennis': '🏓',
+    'badminton': '🏸',
+    'volleyball': '🏐',
+    'tennis': '🎾',
+    'pickleball': '🥒'
+  };
+
+  const sportName = sportNames[sport] || sport;
+  const sportEmoji = sportEmojis[sport] || '🏆';
 
   return (
     <div className="p-6 space-y-6" data-testid="leaderboard-page">
+      {/* Navigation */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
+        <Button variant="ghost" onClick={() => navigate('/')} className="gap-2">
+          <Home className="w-4 h-4" />
+          Home
+        </Button>
+      </div>
+
       {/* Header */}
       <div 
         className="relative rounded-xl overflow-hidden"
