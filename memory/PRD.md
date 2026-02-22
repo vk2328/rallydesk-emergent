@@ -212,6 +212,16 @@ Facebook OAuth integration complete Feb 2025.
 - **Standings data display**: Fixed field name mismatches between backend (`participant_name`, `wins`, `sets_for`) and frontend (`name`, `won`, `sets_won`)
 - Files updated: `/app/frontend/src/pages/Leaderboard.jsx`, `/app/frontend/src/pages/Standings.jsx`
 
+## Leaderboard Tournament Filter (Feb 2025) - COMPLETE
+- **Global + Tournament-specific views**: Users can toggle between all-time global rankings and tournament-specific rankings
+- **Tournament dropdown**: Select from list of all tournaments
+- **Dynamic stats**: Tournament-specific view calculates stats from match results in real-time
+- **API Enhancement**: `GET /api/leaderboard/{sport}?tournament_id={id}` - optional filter parameter
+- **New Endpoint**: `GET /api/tournaments-list` - public list of tournaments for filter dropdown
+- Files updated:
+  - `/app/frontend/src/pages/Leaderboard.jsx` - Added tournament filter UI
+  - `/app/backend/server.py` - Enhanced leaderboard endpoint with tournament filtering
+
 ## Groups + Knockout Format (Feb 2025) - COMPLETE
 **Feature**: Full support for group stage + knockout elimination format
 - **Group Stage UI**: New `GroupStageView.jsx` component with:
