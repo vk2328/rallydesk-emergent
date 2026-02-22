@@ -2088,6 +2088,24 @@ async def generate_knockout(tournament_id: str, competition_id: str, current_use
     if not competition:
         raise HTTPException(status_code=404, detail="Competition not found")
     
+    # Check if knockout matches already exist
+    existing_knockout = await db.matches.find_one({"competition_id": competition_id, "round_number": {"$gte": 100}})
+    if existing_knockout:
+        raise HTTPException(status_code=400, detail="Knockout bracket already generated. Reset the draw first to regenerate.")
+    
+    # Get all group stage matches and check if they're complete
+    group_matches = await db.matches.find({
+        "competition_id": competition_id, 
+        "round_number": {"$lt": 100}
+    }, {"_id": 0}).to_list(1000)
+    
+    if not group_matches:
+        raise HTTPException(status_code=400, detail="No group stage matches found. Generate the group stage draw first.")
+    
+    incomplete_count = sum(1 for m in group_matches if m.get("status") != "completed")
+    if incomplete_count > 0:
+        raise HTTPException(status_code=400, detail=f"Group stage is not complete. {incomplete_count} matches remaining.")
+    
     # Get standings from group stage
     standings = await calculate_standings(competition_id, competition.get("num_groups", 1))
     
@@ -2099,6 +2117,9 @@ async def generate_knockout(tournament_id: str, competition_id: str, current_use
         group_standings = [s for s in standings if s.get("group_number") == group_num]
         group_standings.sort(key=lambda x: (-x.get("wins", 0), -(x.get("points_for", 0) - x.get("points_against", 0))))
         qualifiers.extend([s["participant_id"] for s in group_standings[:advance_per_group]])
+    
+    if len(qualifiers) < 2:
+        raise HTTPException(status_code=400, detail="Not enough qualifiers to generate knockout bracket.")
     
     # Generate knockout bracket
     now = datetime.now(timezone.utc).isoformat()
