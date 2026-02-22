@@ -151,7 +151,16 @@ const Leaderboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {leaderboard.length > 0 ? (
+          {error ? (
+            <div className="text-center py-12 text-red-500">
+              <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Error loading leaderboard</p>
+              <p className="text-sm mt-1">{error}</p>
+              <Button variant="outline" onClick={fetchLeaderboard} className="mt-4">
+                Try Again
+              </Button>
+            </div>
+          ) : leaderboard.length > 0 ? (
             <div className="space-y-3">
               {leaderboard.map((player) => (
                 <div
@@ -207,7 +216,7 @@ const Leaderboard = () => {
             <div className="text-center py-12 text-muted-foreground">
               <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No players with match history yet</p>
-              <p className="text-sm mt-1">Complete some matches to see rankings</p>
+              <p className="text-sm mt-1">Complete some {sportName} matches to see rankings</p>
             </div>
           )}
         </CardContent>
