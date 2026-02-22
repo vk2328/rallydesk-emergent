@@ -6,9 +6,11 @@ import { API_URL, formatStatus, getStatusColor, getSportIcon, getPlayerName } fr
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Minus, Trophy, RotateCcw, Check, QrCode, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trophy, RotateCcw, Check, QrCode, Copy, Edit2, Save, AlertTriangle } from 'lucide-react';
 
 const MatchScoreboard = () => {
   const { tournamentId, matchId } = useParams();
@@ -29,6 +31,13 @@ const MatchScoreboard = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrData, setQrData] = useState(null);
   const [generatingQr, setGeneratingQr] = useState(false);
+  
+  // Score override state
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [editingSetIndex, setEditingSetIndex] = useState(null);
+  const [editScore1, setEditScore1] = useState(0);
+  const [editScore2, setEditScore2] = useState(0);
+  const [savingOverride, setSavingOverride] = useState(false);
 
   // Allow scoring for admin, scorekeeper, or any authenticated user (tournament owner is checked on backend)
   const canScore = user && (user.role === 'admin' || user.role === 'scorekeeper' || user.role === 'viewer');
