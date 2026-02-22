@@ -3676,37 +3676,107 @@ async def get_public_board(tournament_id: str):
 # ============== LEADERBOARD ROUTES ==============
 
 @api_router.get("/leaderboard/{sport}")
-async def get_leaderboard(sport: str):
-    """Get player leaderboard for a specific sport across all tournaments (public)"""
+async def get_leaderboard(sport: str, tournament_id: Optional[str] = None):
+    """Get player leaderboard for a specific sport. Optionally filter by tournament."""
     if sport not in SPORTS:
         raise HTTPException(status_code=400, detail=f"Invalid sport. Must be one of: {SPORTS}")
     
-    # Get all players who play this sport
-    players = await db.players.find(
-        {"sports": sport, "matches_played": {"$gt": 0}},
-        {"_id": 0}
-    ).to_list(1000)
+    # Build query - filter by tournament if specified
+    query = {"sports": sport}
+    if tournament_id:
+        query["tournament_id"] = tournament_id
     
-    # Calculate win rate and prepare leaderboard data
-    leaderboard = []
-    for player in players:
-        wins = player.get("wins", 0)
-        losses = player.get("losses", 0)
-        matches_played = player.get("matches_played", 0)
+    # Get players matching the query
+    players = await db.players.find(query, {"_id": 0}).to_list(1000)
+    
+    if tournament_id:
+        # For tournament-specific leaderboard, calculate stats from matches
+        # Get all completed matches for this tournament and sport
+        competitions = await db.competitions.find(
+            {"tournament_id": tournament_id, "sport": sport},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+        comp_ids = [c["id"] for c in competitions]
         
-        win_rate = round((wins / matches_played) * 100) if matches_played > 0 else 0
+        matches = await db.matches.find(
+            {"competition_id": {"$in": comp_ids}, "status": "completed"},
+            {"_id": 0}
+        ).to_list(1000)
         
-        leaderboard.append({
-            "id": player["id"],
-            "name": f"{player.get('first_name', '')} {player.get('last_name', '')}".strip(),
-            "skill_level": player.get("skill_level", "intermediate"),
-            "rating": player.get("rating", 0),
-            "wins": wins,
-            "losses": losses,
-            "matches_played": matches_played,
-            "win_rate": win_rate,
-            "rank": 0  # Will be set after sorting
-        })
+        # Calculate stats from matches
+        player_stats = {}
+        for player in players:
+            player_stats[player["id"]] = {
+                "id": player["id"],
+                "name": f"{player.get('first_name', '')} {player.get('last_name', '')}".strip(),
+                "skill_level": player.get("skill_level", "intermediate"),
+                "rating": player.get("rating", 0),
+                "wins": 0,
+                "losses": 0,
+                "matches_played": 0,
+                "points_for": 0,
+                "points_against": 0
+            }
+        
+        for match in matches:
+            p1_id = match.get("participant1_id")
+            p2_id = match.get("participant2_id")
+            winner_id = match.get("winner_id")
+            
+            if p1_id in player_stats:
+                player_stats[p1_id]["matches_played"] += 1
+                if winner_id == p1_id:
+                    player_stats[p1_id]["wins"] += 1
+                elif winner_id == p2_id:
+                    player_stats[p1_id]["losses"] += 1
+                for score in match.get("scores", []):
+                    player_stats[p1_id]["points_for"] += score.get("score1", 0)
+                    player_stats[p1_id]["points_against"] += score.get("score2", 0)
+            
+            if p2_id in player_stats:
+                player_stats[p2_id]["matches_played"] += 1
+                if winner_id == p2_id:
+                    player_stats[p2_id]["wins"] += 1
+                elif winner_id == p1_id:
+                    player_stats[p2_id]["losses"] += 1
+                for score in match.get("scores", []):
+                    player_stats[p2_id]["points_for"] += score.get("score2", 0)
+                    player_stats[p2_id]["points_against"] += score.get("score1", 0)
+        
+        # Build leaderboard from calculated stats
+        leaderboard = []
+        for stats in player_stats.values():
+            matches_played = stats["matches_played"]
+            win_rate = round((stats["wins"] / matches_played) * 100) if matches_played > 0 else 0
+            leaderboard.append({
+                **stats,
+                "win_rate": win_rate,
+                "rank": 0
+            })
+    else:
+        # Global leaderboard - use stored player stats (only players with matches)
+        leaderboard = []
+        for player in players:
+            wins = player.get("wins", 0)
+            losses = player.get("losses", 0)
+            matches_played = player.get("matches_played", 0)
+            
+            if matches_played == 0:
+                continue  # Skip players with no matches for global view
+            
+            win_rate = round((wins / matches_played) * 100) if matches_played > 0 else 0
+            
+            leaderboard.append({
+                "id": player["id"],
+                "name": f"{player.get('first_name', '')} {player.get('last_name', '')}".strip(),
+                "skill_level": player.get("skill_level", "intermediate"),
+                "rating": player.get("rating", 0),
+                "wins": wins,
+                "losses": losses,
+                "matches_played": matches_played,
+                "win_rate": win_rate,
+                "rank": 0
+            })
     
     # Sort by wins (primary), then win_rate (secondary), then rating (tertiary)
     leaderboard.sort(key=lambda x: (-x["wins"], -x["win_rate"], -(x.get("rating") or 0)))
@@ -3716,6 +3786,16 @@ async def get_leaderboard(sport: str):
         entry["rank"] = i + 1
     
     return leaderboard
+
+
+@api_router.get("/tournaments-list")
+async def get_tournaments_list_public():
+    """Get list of all tournaments (public, for leaderboard filter)"""
+    tournaments = await db.tournaments.find(
+        {},
+        {"_id": 0, "id": 1, "name": 1, "start_date": 1}
+    ).sort("start_date", -1).to_list(100)
+    return tournaments
 
 # ============== ROOT ==============
 
