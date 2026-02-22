@@ -641,6 +641,87 @@ const MatchScoreboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Score Override Dialog */}
+      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5" />
+              Edit Set {editingSetIndex !== null ? editingSetIndex + 1 : ''} Score
+            </DialogTitle>
+            <DialogDescription>
+              Manually correct the score for this set. This will recalculate the match result if needed.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label htmlFor="edit-score1" className="text-sm text-muted-foreground mb-1 block">
+                  {participant1Name}
+                </Label>
+                <Input
+                  id="edit-score1"
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={editScore1}
+                  onChange={(e) => setEditScore1(parseInt(e.target.value) || 0)}
+                  className="font-teko text-3xl text-center h-14"
+                />
+              </div>
+              
+              <span className="text-2xl text-muted-foreground mt-6">-</span>
+              
+              <div className="flex-1">
+                <Label htmlFor="edit-score2" className="text-sm text-muted-foreground mb-1 block">
+                  {participant2Name}
+                </Label>
+                <Input
+                  id="edit-score2"
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={editScore2}
+                  onChange={(e) => setEditScore2(parseInt(e.target.value) || 0)}
+                  className="font-teko text-3xl text-center h-14"
+                />
+              </div>
+            </div>
+            
+            {editScore1 === editScore2 && (
+              <div className="flex items-center gap-2 p-3 bg-yellow-500/10 text-yellow-600 rounded-lg text-sm">
+                <AlertTriangle className="w-4 h-4" />
+                <span>A set cannot end in a tie</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setOverrideDialogOpen(false)}
+              disabled={savingOverride}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveOverride}
+              disabled={savingOverride || editScore1 === editScore2}
+            >
+              {savingOverride ? (
+                <>Saving...</>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
