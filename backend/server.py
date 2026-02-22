@@ -3341,6 +3341,306 @@ async def dispute_match_score(
     
     return {"message": "Score disputed"}
 
+
+# ============== GROUP-LEVEL SCORING ==============
+
+class GroupScorerLock(BaseModel):
+    session_id: str
+    locked_at: str
+    expires_at: str
+
+@api_router.post("/tournaments/{tournament_id}/competitions/{competition_id}/group/{group_number}/scorer-access")
+async def generate_group_scorer_access(
+    tournament_id: str,
+    competition_id: str,
+    group_number: int,
+    current_user: dict = Depends(require_auth)
+):
+    """Generate QR code for group-level scorer access"""
+    await require_tournament_access(tournament_id, current_user)
+    
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    if competition.get("format") != "groups_knockout":
+        raise HTTPException(status_code=400, detail="Group scoring only available for Groups + Knockout format")
+    
+    # Generate access code
+    access_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat()
+    
+    # Store group scorer access in competition document
+    group_scorer_access = {
+        "group_number": group_number,
+        "access_code": access_code,
+        "expires_at": expires_at,
+        "generated_by": current_user["id"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "active_session": None  # Will store active scorer session
+    }
+    
+    # Generate QR code with group scoring URL
+    frontend_url = os.environ.get("FRONTEND_URL", "https://match-ops-1.preview.emergentagent.com")
+    scoring_url = f"{frontend_url}/group-scorer/{tournament_id}/{competition_id}/{group_number}?code={access_code}"
+    
+    qr = pyqrcode.create(scoring_url)
+    qr_buffer = io.BytesIO()
+    qr.png(qr_buffer, scale=6)
+    qr_code_base64 = base64.b64encode(qr_buffer.getvalue()).decode()
+    
+    group_scorer_access["scoring_url"] = scoring_url
+    group_scorer_access["qr_code"] = qr_code_base64
+    
+    # Update competition with group scorer access
+    await db.competitions.update_one(
+        {"id": competition_id},
+        {"$set": {f"group_scorer_access.{group_number}": group_scorer_access}}
+    )
+    
+    return {
+        "access_code": access_code,
+        "scoring_url": scoring_url,
+        "qr_code": f"data:image/png;base64,{qr_code_base64}",
+        "expires_at": expires_at,
+        "group_number": group_number,
+        "message": f"Share this QR code with the Group {group_number} scorer"
+    }
+
+
+@api_router.post("/group-scorer/{tournament_id}/{competition_id}/{group_number}/acquire-lock")
+async def acquire_group_scorer_lock(
+    tournament_id: str,
+    competition_id: str,
+    group_number: int,
+    code: str,
+    session_id: str
+):
+    """Scorer acquires exclusive lock for group scoring - NO AUTH REQUIRED"""
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    group_access = competition.get("group_scorer_access", {}).get(str(group_number))
+    if not group_access:
+        raise HTTPException(status_code=403, detail="No scorer access configured for this group")
+    
+    # Verify access code
+    if group_access.get("access_code") != code:
+        raise HTTPException(status_code=403, detail="Invalid access code")
+    
+    # Check expiration
+    expires_at = datetime.fromisoformat(group_access["expires_at"].replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=403, detail="Access code has expired")
+    
+    # Check if there's an active session
+    active_session = group_access.get("active_session")
+    if active_session:
+        session_expires = datetime.fromisoformat(active_session["expires_at"].replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) < session_expires and active_session["session_id"] != session_id:
+            return {
+                "locked": True,
+                "message": "Another scorer is currently active",
+                "lock_expires_at": active_session["expires_at"]
+            }
+    
+    # Grant lock for 30 minutes (renewable)
+    lock_expires = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+    new_session = {
+        "session_id": session_id,
+        "locked_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": lock_expires
+    }
+    
+    await db.competitions.update_one(
+        {"id": competition_id},
+        {"$set": {f"group_scorer_access.{group_number}.active_session": new_session}}
+    )
+    
+    return {
+        "locked": False,
+        "session_id": session_id,
+        "lock_expires_at": lock_expires,
+        "message": "Lock acquired successfully"
+    }
+
+
+@api_router.post("/group-scorer/{tournament_id}/{competition_id}/{group_number}/renew-lock")
+async def renew_group_scorer_lock(
+    tournament_id: str,
+    competition_id: str,
+    group_number: int,
+    code: str,
+    session_id: str
+):
+    """Renew scorer lock to prevent timeout - NO AUTH REQUIRED"""
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    group_access = competition.get("group_scorer_access", {}).get(str(group_number))
+    if not group_access or group_access.get("access_code") != code:
+        raise HTTPException(status_code=403, detail="Invalid access")
+    
+    active_session = group_access.get("active_session")
+    if not active_session or active_session["session_id"] != session_id:
+        raise HTTPException(status_code=403, detail="Session not found or not owned by you")
+    
+    # Extend lock for another 30 minutes
+    lock_expires = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+    
+    await db.competitions.update_one(
+        {"id": competition_id},
+        {"$set": {f"group_scorer_access.{group_number}.active_session.expires_at": lock_expires}}
+    )
+    
+    return {"lock_expires_at": lock_expires, "message": "Lock renewed"}
+
+
+@api_router.post("/group-scorer/{tournament_id}/{competition_id}/{group_number}/release-lock")
+async def release_group_scorer_lock(
+    tournament_id: str,
+    competition_id: str,
+    group_number: int,
+    code: str,
+    session_id: str
+):
+    """Release scorer lock when done - NO AUTH REQUIRED"""
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    group_access = competition.get("group_scorer_access", {}).get(str(group_number))
+    if not group_access or group_access.get("access_code") != code:
+        raise HTTPException(status_code=403, detail="Invalid access")
+    
+    active_session = group_access.get("active_session")
+    if active_session and active_session["session_id"] == session_id:
+        await db.competitions.update_one(
+            {"id": competition_id},
+            {"$set": {f"group_scorer_access.{group_number}.active_session": None}}
+        )
+    
+    return {"message": "Lock released"}
+
+
+@api_router.get("/group-scorer/{tournament_id}/{competition_id}/{group_number}/matches")
+async def get_group_matches_for_scorer(
+    tournament_id: str,
+    competition_id: str,
+    group_number: int,
+    code: str
+):
+    """Get all matches in a group for scorer - validates access code, NO AUTH REQUIRED"""
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    group_access = competition.get("group_scorer_access", {}).get(str(group_number))
+    if not group_access:
+        raise HTTPException(status_code=403, detail="No scorer access configured for this group")
+    
+    # Verify access code
+    if group_access.get("access_code") != code:
+        raise HTTPException(status_code=403, detail="Invalid access code")
+    
+    # Check expiration
+    expires_at = datetime.fromisoformat(group_access["expires_at"].replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=403, detail="Access code has expired")
+    
+    # Get all matches in this group
+    matches = await db.matches.find(
+        {"competition_id": competition_id, "group_number": group_number},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get participant info
+    player_ids = set()
+    for match in matches:
+        if match.get("participant1_id"):
+            player_ids.add(match["participant1_id"])
+        if match.get("participant2_id"):
+            player_ids.add(match["participant2_id"])
+    
+    players = await db.players.find(
+        {"id": {"$in": list(player_ids)}},
+        {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}
+    ).to_list(100)
+    
+    player_map = {p["id"]: f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() for p in players}
+    
+    # Enrich matches with player names
+    for match in matches:
+        match["participant1_name"] = player_map.get(match.get("participant1_id"), "TBD")
+        match["participant2_name"] = player_map.get(match.get("participant2_id"), "TBD")
+    
+    return {
+        "group_number": group_number,
+        "competition_name": competition.get("name"),
+        "scoring_rules": competition.get("scoring_rules", {}),
+        "matches": matches,
+        "active_session": group_access.get("active_session")
+    }
+
+
+@api_router.post("/group-scorer/{tournament_id}/{competition_id}/{group_number}/update-score")
+async def group_scorer_update_match(
+    tournament_id: str,
+    competition_id: str,
+    group_number: int,
+    match_id: str,
+    code: str,
+    session_id: str,
+    score_update: RefereeScoreUpdate
+):
+    """Update match score from group scorer interface - validates lock, NO AUTH REQUIRED"""
+    competition = await db.competitions.find_one({"id": competition_id}, {"_id": 0})
+    if not competition:
+        raise HTTPException(status_code=404, detail="Competition not found")
+    
+    group_access = competition.get("group_scorer_access", {}).get(str(group_number))
+    if not group_access or group_access.get("access_code") != code:
+        raise HTTPException(status_code=403, detail="Invalid access code")
+    
+    # Verify session lock
+    active_session = group_access.get("active_session")
+    if not active_session or active_session["session_id"] != session_id:
+        raise HTTPException(status_code=403, detail="You don't have the active lock. Another scorer may be active.")
+    
+    # Check lock expiration
+    lock_expires = datetime.fromisoformat(active_session["expires_at"].replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) > lock_expires:
+        raise HTTPException(status_code=403, detail="Your lock has expired. Please re-acquire lock.")
+    
+    # Verify match belongs to this group
+    match = await db.matches.find_one(
+        {"id": match_id, "competition_id": competition_id, "group_number": group_number},
+        {"_id": 0}
+    )
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found in this group")
+    
+    # Update scores
+    scores_data = [s.model_dump() for s in score_update.scores]
+    
+    update_data = {
+        "scores": scores_data,
+        "score_status": "pending",
+        "referee_updated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "live" if not score_update.winner_id else "completed"
+    }
+    
+    if score_update.winner_id:
+        update_data["winner_id"] = score_update.winner_id
+        update_data["status"] = "completed"
+    
+    await db.matches.update_one({"id": match_id}, {"$set": update_data})
+    
+    return {"message": "Score updated successfully"}
+
+
 # ============== PDF SCORE SHEET GENERATION ==============
 
 @api_router.get("/tournaments/{tournament_id}/competitions/{competition_id}/score-sheet-pdf")
