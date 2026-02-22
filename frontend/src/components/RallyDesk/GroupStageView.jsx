@@ -249,13 +249,29 @@ const GroupStageView = ({
         {Object.entries(groupMatches).sort((a, b) => Number(a[0]) - Number(b[0])).map(([groupNum, groupMatchList]) => (
           <Card key={groupNum} className="bg-card border-border/40" data-testid={`group-${groupNum}`}>
             <CardHeader className="pb-2">
-              <CardTitle className="font-heading uppercase flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-primary" />
-                Group {groupNum}
-              </CardTitle>
-              <CardDescription>
-                {groupMatchList.filter(m => m.status === 'completed').length} / {groupMatchList.length} matches played
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="font-heading uppercase flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-primary" />
+                    Group {groupNum}
+                  </CardTitle>
+                  <CardDescription>
+                    {groupMatchList.filter(m => m.status === 'completed').length} / {groupMatchList.length} matches played
+                  </CardDescription>
+                </div>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGenerateGroupQR(groupNum)}
+                    disabled={generatingQr && selectedGroupForQr === groupNum}
+                    data-testid={`group-${groupNum}-qr-btn`}
+                  >
+                    <QrCode className="w-4 h-4 mr-1" />
+                    {generatingQr && selectedGroupForQr === groupNum ? 'Generating...' : 'Scorer QR'}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Standings Table */}
