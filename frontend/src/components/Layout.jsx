@@ -138,6 +138,18 @@ const Layout = ({ children }) => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* Help Button */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => navigate('/help')}
+                data-testid="help-btn"
+                className="text-muted-foreground hover:text-primary"
+                title="How to use RallyDesk"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Button>
+
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
