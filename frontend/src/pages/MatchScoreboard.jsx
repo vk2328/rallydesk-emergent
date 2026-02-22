@@ -306,7 +306,22 @@ const MatchScoreboard = () => {
                 <div className="grid grid-cols-3 gap-4 items-center">
                   {/* Player 1 Score */}
                   <div className="text-center">
-                    <p className="font-teko text-7xl md:text-9xl font-bold">{score1}</p>
+                    {canScore ? (
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={score1}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setScore1(Math.max(0, Math.min(99, val)));
+                        }}
+                        className="font-teko text-6xl md:text-8xl font-bold text-center bg-transparent border-2 border-dashed border-primary/30 rounded-xl w-32 md:w-40 mx-auto focus:outline-none focus:border-primary"
+                        data-testid="p1-score-input"
+                      />
+                    ) : (
+                      <p className="font-teko text-7xl md:text-9xl font-bold">{score1}</p>
+                    )}
                     {canScore && (
                       <div className="flex justify-center gap-2 mt-4">
                         <Button
@@ -337,7 +352,22 @@ const MatchScoreboard = () => {
 
                   {/* Player 2 Score */}
                   <div className="text-center">
-                    <p className="font-teko text-7xl md:text-9xl font-bold">{score2}</p>
+                    {canScore ? (
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={score2}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setScore2(Math.max(0, Math.min(99, val)));
+                        }}
+                        className="font-teko text-6xl md:text-8xl font-bold text-center bg-transparent border-2 border-dashed border-secondary/30 rounded-xl w-32 md:w-40 mx-auto focus:outline-none focus:border-secondary"
+                        data-testid="p2-score-input"
+                      />
+                    ) : (
+                      <p className="font-teko text-7xl md:text-9xl font-bold">{score2}</p>
+                    )}
                     {canScore && (
                       <div className="flex justify-center gap-2 mt-4">
                         <Button
