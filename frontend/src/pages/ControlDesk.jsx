@@ -11,7 +11,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, Play, Square, ChevronRight, RefreshCw,
-  Clock, AlertCircle
+  Clock, AlertCircle, CheckCircle2
 } from 'lucide-react';
 
 const ControlDesk = () => {
