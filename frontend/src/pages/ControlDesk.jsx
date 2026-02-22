@@ -190,7 +190,7 @@ const ControlDesk = () => {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-card border-border/40">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground uppercase">Live Matches</p>
@@ -201,6 +201,14 @@ const ControlDesk = () => {
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground uppercase">Pending</p>
             <p className="font-teko text-4xl text-yellow-500">{pendingMatches.length}</p>
+          </CardContent>
+        </Card>
+        <Card className={`border-border/40 ${pendingScoreMatches.length > 0 ? 'bg-orange-500/10 border-orange-500/40 animate-pulse' : 'bg-card'}`}>
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-muted-foreground uppercase">Needs Confirmation</p>
+            <p className={`font-teko text-4xl ${pendingScoreMatches.length > 0 ? 'text-orange-500' : 'text-muted-foreground'}`}>
+              {pendingScoreMatches.length}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-card border-border/40">
@@ -216,6 +224,57 @@ const ControlDesk = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pending Score Confirmation Alert */}
+      {pendingScoreMatches.length > 0 && (
+        <Card className="bg-orange-500/20 border-orange-500/40" data-testid="pending-scores-alert">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-heading uppercase flex items-center gap-2 text-orange-300">
+              <Clock className="w-5 h-5" />
+              Referee Scores Awaiting Confirmation
+            </CardTitle>
+            <CardDescription className="text-orange-200/70">
+              These matches have scores entered by referees that need organizer confirmation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingScoreMatches.map(match => (
+                <div 
+                  key={match.id}
+                  className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-orange-500/20 cursor-pointer hover:bg-background/70 transition-colors"
+                  onClick={() => handleOpenMatch(match.id)}
+                  data-testid={`pending-score-match-${match.id}`}
+                >
+                  <div>
+                    <p className="font-medium">
+                      {getPlayerName(match.participant1) || 'Player 1'} vs {getPlayerName(match.participant2) || 'Player 2'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {match.competition_name} • Round {match.round_number}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Show current score */}
+                    {match.scores?.length > 0 && (
+                      <div className="text-center">
+                        <p className="font-teko text-xl">
+                          {match.scores.filter(s => s.score1 > s.score2).length} - {match.scores.filter(s => s.score2 > s.score1).length}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Sets</p>
+                      </div>
+                    )}
+                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      Review
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Resources Panel */}
