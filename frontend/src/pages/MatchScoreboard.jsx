@@ -24,6 +24,11 @@ const MatchScoreboard = () => {
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [sets, setSets] = useState([]);
+  
+  // QR Code state
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrData, setQrData] = useState(null);
+  const [generatingQr, setGeneratingQr] = useState(false);
 
   // Allow scoring for admin, scorekeeper, or any authenticated user (tournament owner is checked on backend)
   const canScore = user && (user.role === 'admin' || user.role === 'scorekeeper' || user.role === 'viewer');
