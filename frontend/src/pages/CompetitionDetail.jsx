@@ -19,6 +19,7 @@ import {
   Award, ChevronRight, X, RefreshCw, Swords, Settings2,
   ArrowUpDown, GripVertical, Check, Shuffle, FileDown, QrCode, AlertCircle
 } from 'lucide-react';
+import GroupStageView from '../components/RallyDesk/GroupStageView';
 
 const CompetitionDetail = () => {
   const { tournamentId, competitionId } = useParams();
