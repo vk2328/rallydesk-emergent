@@ -513,14 +513,21 @@ const MatchScoreboard = () => {
         {sets.length > 0 && (
           <Card className="bg-card border-border/40">
             <CardHeader>
-              <CardTitle className="font-heading uppercase">Set History</CardTitle>
+              <CardTitle className="font-heading uppercase flex items-center justify-between">
+                <span>Set History</span>
+                {canScore && (
+                  <span className="text-xs font-normal text-muted-foreground">
+                    Click edit to correct scores
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {sets.map((set, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30 group"
                   >
                     <span className="text-sm text-muted-foreground">Set {set.set_number || idx + 1}</span>
                     <div className="flex items-center gap-4">
@@ -531,6 +538,17 @@ const MatchScoreboard = () => {
                       <span className={`font-teko text-2xl ${set.score2 > set.score1 ? 'text-green-500 font-bold' : ''}`}>
                         {set.score2}
                       </span>
+                      {canScore && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                          onClick={() => openOverrideDialog(idx)}
+                          data-testid={`edit-set-${idx}`}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
