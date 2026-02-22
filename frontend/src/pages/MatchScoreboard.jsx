@@ -209,6 +209,70 @@ const MatchScoreboard = () => {
     toast.success('Copied to clipboard!');
   };
 
+  // Open override dialog for a specific set
+  const openOverrideDialog = (setIndex) => {
+    const setData = sets[setIndex];
+    setEditingSetIndex(setIndex);
+    setEditScore1(setData.score1);
+    setEditScore2(setData.score2);
+    setOverrideDialogOpen(true);
+  };
+
+  // Save the overridden scores
+  const handleSaveOverride = async () => {
+    if (editingSetIndex === null) return;
+    
+    setSavingOverride(true);
+    try {
+      // Update the local sets array
+      const updatedSets = [...sets];
+      updatedSets[editingSetIndex] = {
+        ...updatedSets[editingSetIndex],
+        score1: editScore1,
+        score2: editScore2
+      };
+      
+      // Recalculate winner if match was completed
+      const p1SetsWon = updatedSets.filter(s => s.score1 > s.score2).length;
+      const p2SetsWon = updatedSets.filter(s => s.score2 > s.score1).length;
+      
+      let winnerId = null;
+      let newStatus = match.status;
+      
+      if (p1SetsWon >= setsToWin) {
+        winnerId = match.participant1_id;
+        newStatus = 'completed';
+      } else if (p2SetsWon >= setsToWin) {
+        winnerId = match.participant2_id;
+        newStatus = 'completed';
+      } else if (match.status === 'completed') {
+        // If match was completed but now no one has enough sets, revert to live
+        newStatus = 'live';
+      }
+      
+      // Save to backend
+      await axios.put(
+        `${API_URL}/tournaments/${tournamentId}/matches/${matchId}/scores`,
+        {
+          scores: updatedSets,
+          status: newStatus,
+          winner_id: winnerId
+        },
+        { headers: getAuthHeader() }
+      );
+      
+      setSets(updatedSets);
+      setOverrideDialogOpen(false);
+      toast.success('Score updated successfully');
+      fetchMatch(); // Refresh match data
+    } catch (error) {
+      console.error('Override error:', error);
+      toast.error('Failed to update score');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
