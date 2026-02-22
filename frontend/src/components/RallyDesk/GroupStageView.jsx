@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { toast } from 'sonner';
 import { 
   Users, Trophy, Play, ChevronRight, 
-  Award, Swords, ArrowRightCircle, Loader2
+  Award, Swords, ArrowRightCircle, Loader2, QrCode, Copy
 } from 'lucide-react';
 import { API_URL, formatStatus, getStatusColor } from '../../lib/utils';
 
@@ -25,6 +26,12 @@ const GroupStageView = ({
   const navigate = useNavigate();
   const [generatingKnockout, setGeneratingKnockout] = useState(false);
   const [groupStandings, setGroupStandings] = useState({});
+  
+  // QR Code state
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrData, setQrData] = useState(null);
+  const [generatingQr, setGeneratingQr] = useState(false);
+  const [selectedGroupForQr, setSelectedGroupForQr] = useState(null);
   
   // Group matches by group_number
   const groupMatches = matches.reduce((acc, match) => {
