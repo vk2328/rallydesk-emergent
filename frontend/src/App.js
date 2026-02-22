@@ -89,6 +89,7 @@ function AppRoutes() {
       <Route path="/tournaments/:tournamentId/board" element={<PublicBoard />} />
       <Route path="/referee/:tournamentId/:matchId" element={<RefereeScoring />} />
       <Route path="/leaderboard/:sport" element={<Leaderboard />} />
+      <Route path="/help" element={<HelpGuide />} />
       <Route path="/" element={<Navigate to="/live" replace />} />
       <Route path="*" element={<Navigate to="/live" replace />} />
     </Routes>
