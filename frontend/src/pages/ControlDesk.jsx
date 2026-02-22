@@ -124,6 +124,12 @@ const ControlDesk = () => {
   // Get live matches
   const liveMatches = matches.filter(m => m.status === 'live');
 
+  // Get matches with pending referee scores (need confirmation)
+  const pendingScoreMatches = matches.filter(m => 
+    m.score_status === 'pending' &&
+    (selectedSport === 'all' || m.competition_sport === selectedSport)
+  );
+
   // Get available resources
   const availableResources = filteredResources.filter(r => r.enabled && !r.locked && !r.current_match_id);
 
