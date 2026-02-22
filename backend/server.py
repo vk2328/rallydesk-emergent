@@ -2698,6 +2698,97 @@ async def update_match(tournament_id: str, match_id: str, update: MatchUpdate, c
     
     return {"message": "Match updated"}
 
+@api_router.put("/tournaments/{tournament_id}/matches/{match_id}/scores")
+async def override_match_scores(tournament_id: str, match_id: str, request: Request, current_user: dict = Depends(require_auth)):
+    """Override/correct scores for a match"""
+    require_scorekeeper_or_admin(current_user)
+    
+    body = await request.json()
+    scores = body.get("scores", [])
+    status = body.get("status")
+    winner_id = body.get("winner_id")
+    
+    match = await db.matches.find_one({"id": match_id}, {"_id": 0})
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    old_winner = match.get("winner_id")
+    old_status = match.get("status")
+    
+    # Prepare update
+    update_data = {
+        "scores": scores,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if status:
+        update_data["status"] = status
+    if winner_id is not None:
+        update_data["winner_id"] = winner_id
+    
+    # If changing winner, we need to update stats
+    competition = await db.competitions.find_one({"id": match["competition_id"]}, {"_id": 0})
+    participant_type = competition.get("participant_type", "single") if competition else "single"
+    collection = "players" if participant_type == "single" else "teams"
+    sport = competition.get("sport", "table_tennis") if competition else "table_tennis"
+    
+    # Revert old stats if match was completed
+    if old_winner and old_status == "completed":
+        old_loser = match["participant1_id"] if old_winner == match["participant2_id"] else match["participant2_id"]
+        # Decrement old winner's wins
+        await db[collection].update_one(
+            {"id": old_winner}, 
+            {"$inc": {"wins": -1, "matches_played": -1}}
+        )
+        # Decrement old loser's losses
+        if old_loser:
+            await db[collection].update_one(
+                {"id": old_loser}, 
+                {"$inc": {"losses": -1, "matches_played": -1}}
+            )
+    
+    # Apply new stats if match is now completed
+    if winner_id and status == "completed":
+        loser_id = match["participant1_id"] if winner_id == match["participant2_id"] else match["participant2_id"]
+        # Increment new winner's wins
+        await db[collection].update_one(
+            {"id": winner_id}, 
+            {
+                "$inc": {"wins": 1, "matches_played": 1},
+                "$addToSet": {"sports": sport}
+            }
+        )
+        # Increment new loser's losses
+        if loser_id:
+            await db[collection].update_one(
+                {"id": loser_id}, 
+                {
+                    "$inc": {"losses": 1, "matches_played": 1},
+                    "$addToSet": {"sports": sport}
+                }
+            )
+        
+        # Update next match if winner changed
+        if match.get("next_match_id") and winner_id != old_winner:
+            next_match = await db.matches.find_one({"id": match["next_match_id"]}, {"_id": 0})
+            if next_match:
+                # Remove old winner and add new winner
+                if old_winner:
+                    if next_match.get("participant1_id") == old_winner:
+                        await db.matches.update_one({"id": match["next_match_id"]}, {"$set": {"participant1_id": winner_id}})
+                    elif next_match.get("participant2_id") == old_winner:
+                        await db.matches.update_one({"id": match["next_match_id"]}, {"$set": {"participant2_id": winner_id}})
+                else:
+                    # No previous winner, just add
+                    if next_match.get("participant1_id") is None:
+                        await db.matches.update_one({"id": match["next_match_id"]}, {"$set": {"participant1_id": winner_id}})
+                    elif next_match.get("participant2_id") is None:
+                        await db.matches.update_one({"id": match["next_match_id"]}, {"$set": {"participant2_id": winner_id}})
+    
+    await db.matches.update_one({"id": match_id}, {"$set": update_data})
+    
+    return {"message": "Scores updated", "winner_id": winner_id, "status": status}
+
 @api_router.post("/tournaments/{tournament_id}/matches/{match_id}/assign")
 async def assign_match_to_resource(tournament_id: str, match_id: str, resource_id: str, current_user: dict = Depends(require_auth)):
     require_scorekeeper_or_admin(current_user)
