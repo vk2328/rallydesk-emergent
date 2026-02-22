@@ -6,8 +6,9 @@ import { API_URL, formatStatus, getStatusColor, getSportIcon, getPlayerName } fr
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Minus, Trophy, RotateCcw, Check, X } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trophy, RotateCcw, Check, QrCode, Copy } from 'lucide-react';
 
 const MatchScoreboard = () => {
   const { tournamentId, matchId } = useParams();
