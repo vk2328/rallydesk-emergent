@@ -487,6 +487,73 @@ const GroupStageView = ({
           <span>Advancing</span>
         </div>
       </div>
+
+      {/* Group QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Group {qrData?.group_number} Scorer Access</DialogTitle>
+            <DialogDescription>
+              Share this QR code with the scorer. Only one scorer can be active at a time.
+            </DialogDescription>
+          </DialogHeader>
+          {qrData && (
+            <div className="space-y-4">
+              {/* QR Code */}
+              <div className="flex justify-center p-4 bg-white rounded-lg">
+                <img 
+                  src={qrData.qr_code} 
+                  alt={`QR Code for Group ${qrData.group_number}`}
+                  className="w-48 h-48"
+                />
+              </div>
+              
+              {/* Access Code */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">Access Code (OTP)</p>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-teko text-4xl tracking-widest">{qrData.access_code}</span>
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={() => copyToClipboard(qrData.access_code)}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* URL */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">Direct Link</p>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value={qrData.scoring_url} 
+                    readOnly 
+                    className="flex-1 bg-muted/30 border rounded px-2 py-1 text-xs"
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={() => copyToClipboard(qrData.scoring_url)}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Instructions */}
+              <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/20 rounded-lg">
+                <p>• Scorer must acquire lock before entering scores</p>
+                <p>• Only one scorer can be active at a time</p>
+                <p>• Lock expires after 30 minutes of inactivity</p>
+                <p>• Expires: {new Date(qrData.expires_at).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
