@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Minus, Trophy, RotateCcw, Check, QrCode, Copy, Edit2, Save, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trophy, RotateCcw, Check, QrCode, Copy, Edit2, Save, AlertTriangle, RefreshCw, Wifi, CheckCircle2, Clock } from 'lucide-react';
 
 const MatchScoreboard = () => {
   const { tournamentId, matchId } = useParams();
