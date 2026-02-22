@@ -125,8 +125,10 @@ const ControlDesk = () => {
   const liveMatches = matches.filter(m => m.status === 'live');
 
   // Get matches with pending referee scores (need confirmation)
+  // Only show if: score_status is explicitly 'pending' AND there are actual scores
   const pendingScoreMatches = matches.filter(m => 
-    m.score_status === 'pending' &&
+    m.score_status === 'pending' && 
+    m.scores?.length > 0 &&
     (selectedSport === 'all' || m.competition_sport === selectedSport)
   );
 
