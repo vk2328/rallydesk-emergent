@@ -38,6 +38,13 @@ const MatchScoreboard = () => {
   const [editScore1, setEditScore1] = useState(0);
   const [editScore2, setEditScore2] = useState(0);
   const [savingOverride, setSavingOverride] = useState(false);
+  
+  // Score status and live update tracking
+  const [lastUpdateTime, setLastUpdateTime] = useState(null);
+  const [hasNewUpdates, setHasNewUpdates] = useState(false);
+  const [confirmingScore, setConfirmingScore] = useState(false);
+  const previousScoresRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
   // Allow scoring for admin, scorekeeper, or any authenticated user (tournament owner is checked on backend)
   const canScore = user && (user.role === 'admin' || user.role === 'scorekeeper' || user.role === 'viewer');
