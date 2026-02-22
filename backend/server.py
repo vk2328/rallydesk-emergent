@@ -3366,9 +3366,16 @@ async def generate_group_scorer_access(
     if competition.get("format") != "groups_knockout":
         raise HTTPException(status_code=400, detail="Group scoring only available for Groups + Knockout format")
     
-    # Generate access code
-    access_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+    # Generate access code using existing helper
+    access_code = generate_access_code()
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat()
+    
+    # Generate QR code with group scoring URL
+    frontend_url = os.environ.get("FRONTEND_URL", "https://match-ops-1.preview.emergentagent.com")
+    scoring_url = f"{frontend_url}/group-scorer/{tournament_id}/{competition_id}/{group_number}?code={access_code}"
+    
+    # Generate QR code using existing helper
+    qr_code_base64 = generate_qr_code_base64(scoring_url)
     
     # Store group scorer access in competition document
     group_scorer_access = {
@@ -3377,20 +3384,10 @@ async def generate_group_scorer_access(
         "expires_at": expires_at,
         "generated_by": current_user["id"],
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "active_session": None  # Will store active scorer session
+        "active_session": None,  # Will store active scorer session
+        "scoring_url": scoring_url,
+        "qr_code": qr_code_base64
     }
-    
-    # Generate QR code with group scoring URL
-    frontend_url = os.environ.get("FRONTEND_URL", "https://match-ops-1.preview.emergentagent.com")
-    scoring_url = f"{frontend_url}/group-scorer/{tournament_id}/{competition_id}/{group_number}?code={access_code}"
-    
-    qr = pyqrcode.create(scoring_url)
-    qr_buffer = io.BytesIO()
-    qr.png(qr_buffer, scale=6)
-    qr_code_base64 = base64.b64encode(qr_buffer.getvalue()).decode()
-    
-    group_scorer_access["scoring_url"] = scoring_url
-    group_scorer_access["qr_code"] = qr_code_base64
     
     # Update competition with group scorer access
     await db.competitions.update_one(
